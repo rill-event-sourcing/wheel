@@ -36,7 +36,7 @@
       ;; more events next time we fetch this aggregate.
       (reset! a (update-aggregate @a event-store)))
     (when-let [events (seq (event-store/retrieve-events event-store aggregate-id))]
-      (reduce aggregate/apply-stored-event (aggregate/mk-aggregate aggregate-id) events))))
+      (reduce aggregate/apply-stored-event (aggregate/empty-aggregate aggregate-id) events))))
 
 
 (defn caching-repository

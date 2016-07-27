@@ -16,7 +16,7 @@
       (apply-event event)
       (update ::new-events (fnil conj []) event)))
 
-(defn mk-aggregate
+(defn empty-aggregate
   "Create a new empty aggregate with id `aggregate-id` and version
   -1. Note that empty aggregates cannot be stored."
   [aggregate-id]
@@ -27,10 +27,10 @@
   [obj]
   (boolean (::id obj)))
 
-(defn init
-  "Initialize a new aggregate."
+(defn create
+  "Create a new aggregate."
   [aggregate-id creation-event]
-  (-> (mk-aggregate aggregate-id)
+  (-> (empty-aggregate aggregate-id)
       (apply-new-event creation-event)))
 
 (defn apply-stored-event
