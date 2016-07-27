@@ -25,17 +25,6 @@
       (apply-event event)
       (update ::version inc)))
 
-(defn fetch [store aggregate-id]
-  (when-let [events (seq (retrieve-events store aggregate-id))]
-    (reduce apply-stored-event (mk-aggregate aggregate-id) events)))
-
-(defn commit!
-  [aggregate store]
-  {:pre [(::id aggregate)]}
-  (if-let [events (seq (::new-events aggregate))]
-    (append-events store (::id aggregate) (::version aggregate) events)
-    true))
-
 (defn- parse-args
   "provide defn-style doc-string suppport for defapply"
   [[sym & [doc-string? :as rst-args]]]

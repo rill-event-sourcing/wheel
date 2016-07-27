@@ -1,6 +1,8 @@
 (ns easter.command-test
   (:require  [clojure.test :refer [deftest is]]
              [rill.temp-store :refer [given]]
+             [easter.repository :as repository]
+             [easter.caching-repository :refer [caching-repository]]
              [rill.message :as msg]
              [easter.command :as command :refer [ok?]]
              [easter.aggregate :as aggregate :refer [defapply]]))
@@ -11,11 +13,11 @@
   (assoc user :email email :full-name full-name))
 
 (defn create-or-fail
-  [store email full-name]
-  (if-let [user (aggregate/fetch store email)]
+  [repo email full-name]
+  (if-let [user (repository/fetch-aggregate repo email)]
     (command/reject user (format "User with mail '%s' already exists" email))
     (-> (aggregate/init email (user-created email full-name))
-        (command/commit! store))))
+        (command/commit! repo))))
 
 (deftest defapply-test
   (is (= (user-created "user@example.com" "joost")
@@ -24,10 +26,10 @@
           :full-name         "joost"})))
 
 (deftest aggregate-creation-test
-  (let [store (given [])]
-    (is (ok? (create-or-fail store "user@example.com" "Full Name")))
-    (is (= {:easter.aggregate/id "user@example.com"
+  (let [repo (caching-repository (given []))]
+    (is (ok? (create-or-fail repo "user@example.com" "Full Name")))
+    (is (= {:easter.aggregate/id      "user@example.com"
             :easter.aggregate/version 0
-            :full-name "Full Name"
-            :email "user@example.com"}
-           (aggregate/fetch store "user@example.com")))))
+            :full-name                "Full Name"
+            :email                    "user@example.com"}
+           (repository/fetch-aggregate repo "user@example.com")))))

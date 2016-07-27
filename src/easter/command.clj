@@ -1,5 +1,6 @@
 (ns easter.command
-  (:require [easter.aggregate :as aggregate]))
+  (:require [easter.aggregate :as aggregate]
+            [easter.repository :as repository]))
 
 (defn rejected? [result]
   (= (::status result) :rejected))
@@ -22,7 +23,7 @@
   {::status :conflict ::aggregate aggregate})
 
 (defn commit!
-  [aggregate store]
-  (if (aggregate/commit! aggregate store)
+  [aggregate repo]
+  (if (repository/commit-aggregate! repo aggregate)
     (ok aggregate)
     (conflict aggregate)))
