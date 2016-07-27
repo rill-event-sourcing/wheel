@@ -1,46 +1,52 @@
 (ns easter.aggregate
-  (:require [rill.event-store :refer [retrieve-events append-events]]))
+  (:require [rill.event-store :refer [retrieve-events append-events]]
+            [easter.macro-utils :refer [parse-args keyword-in-current-ns]]))
 
-(defmulti apply-event (fn [_ event]
-                        (:rill.message/type event)))
+(defmulti apply-event
+  "Update the properties of `aggregate` given `event`. Implementation
+  for different event types will be given by `defevent`"
+  (fn [aggregate event]
+    (:rill.message/type event)))
 
-(defn new-event
+(defn apply-new-event
+  "Apply a new event to the aggreate. The new events will be committed
+  when the aggregate is committed to a repository."
   [aggregate event]
   (-> aggregate
       (apply-event event)
       (update ::new-events (fnil conj []) event)))
 
 (defn mk-aggregate
+  "Create a new empty aggregate with id `aggregate-id` and version
+  -1. Note that empty aggregates cannot be stored."
   [aggregate-id]
   {::id aggregate-id ::version -1})
 
+(defn aggregate?
+  "Test that `obj` is an aggregate"
+  [obj]
+  (boolean (::id obj)))
+
 (defn init
+  "Initialize a new aggregate."
   [aggregate-id creation-event]
   (-> (mk-aggregate aggregate-id)
-      (new-event creation-event)))
+      (apply-new-event creation-event)))
 
 (defn apply-stored-event
+  "Apply a previously committed event to the aggregate. This
+  increments the version of the aggregate."
   [aggregate event]
   (-> aggregate
       (apply-event event)
       (update ::version inc)))
 
-(defn- parse-args
-  "provide defn-style doc-string suppport for defapply"
-  [[sym & [doc-string? :as rst-args]]]
-  (if (string? doc-string?)
-    (into [(vary-meta sym assoc :doc doc-string?)] (drop 1 rst-args))
-    (into [sym] rst-args)))
+(defmacro defevent
+  "Defines an event as a named function that takes args and returns a
+  new rill.message.
 
-(defn- keyword-in-current-ns
-  [sym]
-  (keyword (name (ns-name *ns*)) (name sym)))
-
-(defmacro defapply
-  "Defines an event as a named function that takes args and returns a new rill.message.
-
-  Also defines an apply-event multimethod that applies the event to
-  the aggregate."
+  The given `body` defines an `apply-event` multimethod that
+  applies the event to the aggregate."
   {:arglists '([name doc-string? [aggregate properties*] pre-post-map? body])}
   [& args]
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)]

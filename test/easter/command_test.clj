@@ -4,22 +4,22 @@
              [easter.repository :as repository]
              [easter.caching-repository :refer [caching-repository]]
              [rill.message :as msg]
-             [easter.command :as command :refer [ok?]]
-             [easter.aggregate :as aggregate :refer [defapply]]))
+             [easter.command :as command :refer [ok? defcommand]]
+             [easter.aggregate :as aggregate :refer [defevent]]))
 
-(defapply user-created
+(defevent user-created
   "A new user was created"
   [user email full-name]
   (assoc user :email email :full-name full-name))
 
-(defn create-or-fail
+(defcommand create-or-fail
+  "Create user if none exists with the given email address."
   [repo email full-name]
   (if-let [user (repository/fetch-aggregate repo email)]
-    (command/reject user (format "User with mail '%s' already exists" email))
-    (-> (aggregate/init email (user-created email full-name))
-        (command/commit! repo))))
+    (command/rejection user (format "User with mail '%s' already exists" email))
+    (aggregate/init email (user-created email full-name))))
 
-(deftest defapply-test
+(deftest defevent-test
   (is (= (user-created "user@example.com" "joost")
          {:rill.message/type ::user-created
           :email             "user@example.com"
