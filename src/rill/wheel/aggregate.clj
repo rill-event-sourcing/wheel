@@ -1,6 +1,6 @@
-(ns easter.aggregate
+(ns rill.wheel.aggregate
   (:require [rill.event-store :refer [retrieve-events append-events]]
-            [easter.macro-utils :refer [parse-args keyword-in-current-ns]]))
+            [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns]]))
 
 (defmulti apply-event
   "Update the properties of `aggregate` given `event`. Implementation

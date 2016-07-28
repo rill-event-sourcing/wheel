@@ -1,4 +1,9 @@
-# Rill/Easter - simpler command/aggregate handling for rill
+# Rill/Wheel - Event generation using aggregates and commands
+
+> It may be hard for an egg to turn into a bird: it would be a jolly
+> sight harder for it to learn to fly while remaining an egg.
+
+-- C.S. Lewis
 
 ## Usage
 

@@ -1,7 +1,7 @@
-(ns easter.command
-  (:require [easter.aggregate :as aggregate]
-            [easter.repository :as repository]
-            [easter.macro-utils :refer [parse-args]]))
+(ns rill.wheel.command
+  (:require [rill.wheel.aggregate :as aggregate]
+            [rill.wheel.repository :as repository]
+            [rill.wheel.macro-utils :refer [parse-args]]))
 
 (defn rejection? [result]
   (= (::status result) :rejected))

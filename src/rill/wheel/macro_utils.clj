@@ -1,4 +1,4 @@
-(ns easter.macro-utils)
+(ns rill.wheel.macro-utils)
 
 (defn parse-args
   "provide defn-style doc-string suppport for defevent"

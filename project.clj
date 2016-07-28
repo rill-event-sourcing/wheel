@@ -1,6 +1,6 @@
-(defproject rill-event-sourcing/easter "0.1.0-SNAPSHOT"
+(defproject rill-event-sourcing/wheel "0.1.0-SNAPSHOT"
   :description "simpler command/aggregate handling for rill"
-  :url "https://github.com/rill-event-sourcing/easter"
+  :url "https://github.com/rill-event-sourcing//wheel"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]

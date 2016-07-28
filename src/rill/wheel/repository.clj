@@ -1,8 +1,8 @@
-(ns easter.repository
+(ns rill.wheel.repository
   "Defines the basic aggregate Repository protocol and a minimal
   implementation."
   (:require [rill.event-store :as event-store]
-            [easter.aggregate :as aggregate]))
+            [rill.wheel.aggregate :as aggregate]))
 
 (defprotocol Repository
   (commit-aggregate! [repo aggregate]

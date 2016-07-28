@@ -1,11 +1,11 @@
-(ns easter.command-test
+(ns rill.wheel.command-test
   (:require  [clojure.test :refer [deftest is]]
              [rill.temp-store :refer [given]]
-             [easter.repository :refer [fetch-aggregate]]
-             [easter.caching-repository :refer [caching-repository]]
+             [rill.wheel.repository :as repository :refer [fetch-aggregate]]
+             [rill.wheel.caching-repository :refer [caching-repository]]
              [rill.message :as msg]
-             [easter.command :as command :refer [ok? defcommand rejection]]
-             [easter.aggregate :as aggregate :refer [defevent create]]))
+             [rill.wheel.command :as command :refer [ok? defcommand rejection]]
+             [rill.wheel.aggregate :as aggregate :refer [defevent create]]))
 
 (defevent user-created
   "A new user was created"
@@ -39,8 +39,8 @@
 (deftest aggregate-creation-test
   (let [repo (caching-repository (given []))]
     (is (ok? (create-or-fail repo "user@example.com" "Full Name")))
-    (is (= {:easter.aggregate/id      "user@example.com"
-            :easter.aggregate/version 0
+    (is (= {:rill.wheel.aggregate/id      "user@example.com"
+            :rill.wheel.aggregate/version 0
             :full-name                "Full Name"
             :email                    "user@example.com"}
            (repository/fetch-aggregate repo "user@example.com")))))

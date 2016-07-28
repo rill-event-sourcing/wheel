@@ -1,7 +1,7 @@
-(ns easter.caching-repository
+(ns rill.wheel.caching-repository
   (:require [rill.event-store :as event-store]
-            [easter.aggregate :as aggregate]
-            [easter.repository :refer [Repository]]
+            [rill.wheel.aggregate :as aggregate]
+            [rill.wheel.repository :refer [Repository]]
             [clojure.core.cache :as cache]))
 
 (defn ensure-aggregate-atom-is-in-cache
