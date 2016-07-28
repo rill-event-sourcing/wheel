@@ -1,0 +1,5 @@
+language: clojure
+script: lein test
+notifications:
+  slack:
+    secure: UTuoaiCsgYYCBC/ii5xDKnkOEj2njQ0AyHOm3EZfu8MeG1YjpKXCdCXhbRLQIgmkdxHy6jQJU83JOkv15u8q3Y2f6w6X/nUEwccMicot6hDBNDxmj0oJqoscJCemFnINJ7mfUe0diaNHuZ7NiVCRimBLH3iBVctT7w7vjF4v1kA=
