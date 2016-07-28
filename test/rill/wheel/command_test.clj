@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [rill.temp-store :refer [given]]
             [rill.wheel
-             [aggregate :as aggregate :refer [create defevent]]
+             [aggregate :as aggregate :refer [defevent]]
              [caching-repository :refer [caching-repository]]
              [command :as command :refer [defcommand ok? rejection]]
              [repository :as repository :refer [fetch-aggregate]]]))
@@ -17,7 +17,8 @@
   [repo email full-name]
   (if-let [user (fetch-aggregate repo email)]
     (rejection user (format "User with mail '%s' already exists" email))
-    (create email (user-created email full-name))))
+    (-> (aggregate/empty email)
+        (user-created email full-name))))
 
 (defevent user-name-changed
   "user's `full-name` changed to `new-name`"
@@ -42,7 +43,7 @@
             :email                 "user@example.com"
             ::aggregate/version    -1
             ::aggregate/new-events [event]}
-           (-> (aggregate/empty-aggregate :my-id)
+           (-> (aggregate/empty :my-id)
                (aggregate/apply-new-event event)))
         "event handler multimethod is installed")
     (is (= {::aggregate/id         :my-id
@@ -50,7 +51,7 @@
             :email                 "user@example.com"
             ::aggregate/version    -1
             ::aggregate/new-events [event]}
-           (-> (aggregate/empty-aggregate :my-id)
+           (-> (aggregate/empty :my-id)
                (user-created "user@example.com" "joost")))
         "additional arity veriant calls handler with created event")))
 

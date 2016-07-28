@@ -1,4 +1,5 @@
 (ns rill.wheel.aggregate
+  (:refer-clojure :exclude [empty])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns]]))
 
@@ -16,9 +17,10 @@
       (apply-event event)
       (update ::new-events (fnil conj []) event)))
 
-(defn empty-aggregate
-  "Create a new empty aggregate with id `aggregate-id` and version
-  -1. Note that empty aggregates cannot be stored."
+(defn empty
+  "Create a new aggregate with id `aggregate-id` and no
+  events. Aggregate version will be -1. Note that empty aggregates
+  cannot be stored."
   [aggregate-id]
   {::id aggregate-id ::version -1})
 
@@ -26,12 +28,6 @@
   "Test that `obj` is an aggregate"
   [obj]
   (boolean (::id obj)))
-
-(defn create
-  "Create a new aggregate."
-  [aggregate-id creation-event]
-  (-> (empty-aggregate aggregate-id)
-      (apply-new-event creation-event)))
 
 (defn apply-stored-event
   "Apply a previously committed event to the aggregate. This

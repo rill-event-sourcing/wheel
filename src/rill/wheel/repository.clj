@@ -21,7 +21,7 @@
       true))
   (fetch-aggregate [repo aggregate-id]
     (when-let [events (seq (event-store/retrieve-events event-store aggregate-id))]
-      (reduce aggregate/apply-stored-event (aggregate/empty-aggregate aggregate-id) events))))
+      (reduce aggregate/apply-stored-event (aggregate/empty aggregate-id) events))))
 
 (defn bare-repository
   "A bare-bones repository that stores its events in a rill
