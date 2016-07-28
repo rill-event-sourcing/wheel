@@ -22,13 +22,13 @@
 
 (defrecord CachingRepository [event-store cache]
   Repository
-  (commit-aggregate! [repo aggregate]
+  (commit! [repo aggregate]
     {:pre [(::id aggregate)]}
     (if-let [events (seq (::aggregate/new-events aggregate))]
       (event-store/append-events event-store (::aggregate/id aggregate)
                                  (::aggregate/version aggregate) events)
       true))
-  (fetch-aggregate [repo aggregate-id]
+  (fetch [repo aggregate-id]
     (let [a       (aggregate-atom cache aggregate-id)
           ;; not using `swap!` here because update-aggregate might block
           ;; on network to event store. worst case, we need to fetch a few

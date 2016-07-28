@@ -46,7 +46,8 @@
   applies the event to the aggregate."
   {:arglists '([name doc-string? [aggregate properties*] pre-post-map? body])}
   [& args]
-  (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)]
+  (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
+        n (vary-meta n assoc :rill.wheel.aggregate/event-fn true)]
     `(do (defmethod apply-event ~(keyword-in-current-ns n)
            [~aggregate {:keys ~(vec properties)}]
            ~@body)

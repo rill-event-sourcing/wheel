@@ -5,7 +5,7 @@
              [aggregate :as aggregate :refer [defevent]]
              [caching-repository :refer [caching-repository]]
              [command :as command :refer [defcommand ok? rejection]]
-             [repository :as repository :refer [fetch-aggregate]]]))
+             [repository :as repository :refer [fetch]]]))
 
 (defevent user-created
   "A new user was created"
@@ -15,7 +15,7 @@
 (defcommand create-or-fail
   "Create user if none exists with the given email address."
   [repo email full-name]
-  (if-let [user (fetch-aggregate repo email)]
+  (if-let [user (fetch repo email)]
     (rejection user (format "User with mail '%s' already exists" email))
     (-> (aggregate/empty email)
         (user-created email full-name))))
@@ -27,7 +27,7 @@
 
 (defcommand rename
   [repo email new-name]
-  (if-let [user (repository/fetch-aggregate repo email)]
+  (if-let [user (repository/fetch repo email)]
     (user-name-changed user new-name)
     (rejection nil (format "No user with mail '%s' exists" email))))
 
@@ -62,4 +62,4 @@
             :rill.wheel.aggregate/version 0
             :full-name                    "Full Name"
             :email                        "user@example.com"}
-           (repository/fetch-aggregate repo "user@example.com")))))
+           (repository/fetch repo "user@example.com")))))

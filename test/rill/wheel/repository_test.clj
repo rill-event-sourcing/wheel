@@ -22,13 +22,13 @@
                  hatched)]
     (is (:bird? bird)
         "events applied")
-    (is (repo/commit-aggregate! repo bird)
+    (is (repo/commit! repo bird)
         "commit succeeded")
     (is (= {::aggregate/id      :bird-id
             ::aggregate/version 1
             :egg?               false
             :bird?              true}
-           (repo/fetch-aggregate repo :bird-id)))))
+           (repo/fetch repo :bird-id)))))
 
 (deftest test-bare-repository
   (subtest-fetch-and-store #(repo/bare-repository (given []))))

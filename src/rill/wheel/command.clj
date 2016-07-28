@@ -25,7 +25,7 @@
 
 (defn commit!
   [aggregate repo]
-  (if (repository/commit-aggregate! repo aggregate)
+  (if (repository/commit! repo aggregate)
     (ok aggregate)
     (conflict aggregate)))
 
@@ -37,7 +37,8 @@
   Returns a `rejection`, an `ok` result or a `conflict`"
   {:arglists '([name doc-string? [repository properties*] pre-post-map? body])}
   [& args]
-  (let [[n [repository & properties :as fn-args] & body] (parse-args args)]
+  (let [[n [repository & properties :as fn-args] & body] (parse-args args)
+        n (vary-meta n assoc :rill.wheel.command/command-fn true)]
     `(defn ~n ~(vec fn-args)
        (let [result# (do ~@body)]
          (if (rejection? result#)
