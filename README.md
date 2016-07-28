@@ -5,6 +5,8 @@
 
 -- C.S. Lewis
 
+[![Build Status](https://travis-ci.org/rill-event-sourcing/wheel.svg?branch=master)](https://travis-ci.org/rill-event-sourcing/wheel)
+
 ## Usage
 
 
