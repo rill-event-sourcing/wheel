@@ -42,8 +42,9 @@
       (update ::version inc)))
 
 (defmacro defevent
-  "Defines an event as a named function that takes args and returns a
-  new rill.message.
+  "Defines an event as a multi-arity function that takes properties
+  and returns a new rill.message, or aggregate + properties and that
+  applies the event as a new event to aggregate.
 
   The given `body` defines an `apply-event` multimethod that
   applies the event to the aggregate."
@@ -53,8 +54,12 @@
     `(do (defmethod apply-event ~(keyword-in-current-ns n)
            [~aggregate {:keys ~(vec properties)}]
            ~@body)
-         (defn ~n ~(vec properties)
-           ~(into {:rill.message/type (keyword-in-current-ns n)}
-                  (map (fn [k]
-                         [(keyword k) k])
-                       properties))))))
+         (defn ~n
+           (~(vec properties)
+            ~(into {:rill.message/type (keyword-in-current-ns n)}
+                   (map (fn [k]
+                          [(keyword k) k])
+                        properties)))
+           (~handler-args
+            (apply-new-event ~aggregate (~n ~@properties)))))))
+

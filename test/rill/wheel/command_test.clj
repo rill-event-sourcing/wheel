@@ -1,11 +1,11 @@
 (ns rill.wheel.command-test
-  (:require  [clojure.test :refer [deftest is]]
-             [rill.temp-store :refer [given]]
-             [rill.wheel.repository :as repository :refer [fetch-aggregate]]
-             [rill.wheel.caching-repository :refer [caching-repository]]
-             [rill.message :as msg]
-             [rill.wheel.command :as command :refer [ok? defcommand rejection]]
-             [rill.wheel.aggregate :as aggregate :refer [defevent create]]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [rill.temp-store :refer [given]]
+            [rill.wheel
+             [aggregate :as aggregate :refer [create defevent]]
+             [caching-repository :refer [caching-repository]]
+             [command :as command :refer [defcommand ok? rejection]]
+             [repository :as repository :refer [fetch-aggregate]]]))
 
 (defevent user-created
   "A new user was created"
@@ -27,20 +27,38 @@
 (defcommand rename
   [repo email new-name]
   (if-let [user (repository/fetch-aggregate repo email)]
-    (aggregate/apply-new-event user (user-name-changed new-name))
+    (user-name-changed user new-name)
     (rejection nil (format "No user with mail '%s' exists" email))))
 
 (deftest defevent-test
-  (is (= (user-created "user@example.com" "joost")
-         {:rill.message/type ::user-created
-          :email             "user@example.com"
-          :full-name         "joost"})))
+  (let [event (user-created "user@example.com" "joost")]
+    (is (= {:rill.message/type ::user-created
+            :email             "user@example.com"
+            :full-name         "joost"}
+           event)
+        "lower-arity variant creates new event")
+    (is (= {::aggregate/id         :my-id
+            :full-name             "joost"
+            :email                 "user@example.com"
+            ::aggregate/version    -1
+            ::aggregate/new-events [event]}
+           (-> (aggregate/empty-aggregate :my-id)
+               (aggregate/apply-new-event event)))
+        "event handler multimethod is installed")
+    (is (= {::aggregate/id         :my-id
+            :full-name             "joost"
+            :email                 "user@example.com"
+            ::aggregate/version    -1
+            ::aggregate/new-events [event]}
+           (-> (aggregate/empty-aggregate :my-id)
+               (user-created "user@example.com" "joost")))
+        "additional arity veriant calls handler with created event")))
 
 (deftest aggregate-creation-test
   (let [repo (caching-repository (given []))]
     (is (ok? (create-or-fail repo "user@example.com" "Full Name")))
     (is (= {:rill.wheel.aggregate/id      "user@example.com"
             :rill.wheel.aggregate/version 0
-            :full-name                "Full Name"
-            :email                    "user@example.com"}
+            :full-name                    "Full Name"
+            :email                        "user@example.com"}
            (repository/fetch-aggregate repo "user@example.com")))))
