@@ -8,7 +8,7 @@
   [state aggregate-id]
   (if (cache/has? state aggregate-id)
     (cache/hit state aggregate-id)
-    (cache/miss state aggregate-id (atom nil))))
+    (cache/miss state aggregate-id (atom (aggregate/empty aggregate-id)))))
 
 (defn aggregate-atom
   [cache aggregate-id]
@@ -16,10 +16,9 @@
 
 (defn update-aggregate
   [aggregate event-store]
-  (when aggregate
-    (reduce aggregate/apply-stored-event aggregate
-            (event-store/retrieve-events-since event-store (::aggregate/id aggregate)
-                                               (::aggregate/version aggregate) 0))))
+  (reduce aggregate/apply-stored-event aggregate
+          (event-store/retrieve-events-since event-store (::aggregate/id aggregate)
+                                             (::aggregate/version aggregate) 0)))
 
 (defrecord CachingRepository [event-store cache]
   Repository
@@ -30,14 +29,15 @@
                                  (::aggregate/version aggregate) events)
       true))
   (fetch-aggregate [repo aggregate-id]
-    (let [a (aggregate-atom cache aggregate-id)]
-      ;; not using `swap!` here because update-aggregate might block
-      ;; on network to event store. worst case, we need to fetch a few
-      ;; more events next time we fetch this aggregate.
-      (reset! a (update-aggregate @a event-store)))
-    (when-let [events (seq (event-store/retrieve-events event-store aggregate-id))]
-      (reduce aggregate/apply-stored-event (aggregate/empty aggregate-id) events))))
+    (let [a       (aggregate-atom cache aggregate-id)
+          ;; not using `swap!` here because update-aggregate might block
+          ;; on network to event store. worst case, we need to fetch a few
+          ;; more events next time we fetch this aggregate.
+          updated (reset! a (update-aggregate @a event-store))]
 
+      ;; return nil instead of empty aggregate
+      (when-not (= -1 (::aggregate/version updated))
+        updated))))
 
 (defn caching-repository
   ([event-store cache]
