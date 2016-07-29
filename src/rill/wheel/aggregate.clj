@@ -17,6 +17,11 @@
       (apply-event event)
       (update ::new-events (fnil conj []) event)))
 
+(defn aggregate?
+  "Test that `obj` is an aggregate"
+  [obj]
+  (boolean (::id obj)))
+
 (defn empty
   "Create a new aggregate with id `aggregate-id` and no
   events. Aggregate version will be -1. Note that empty aggregates
@@ -38,10 +43,11 @@
   (and (new? aggregate)
        (clojure.core/empty? (::new-events aggregate))))
 
-(defn aggregate?
-  "Test that `obj` is an aggregate"
-  [obj]
-  (boolean (::id obj)))
+(defn exists
+  "If aggregate is not new, return aggregate, otherwise nil"
+  [aggregate]
+  (when-not (new? aggregate)
+    aggregate))
 
 (defn apply-stored-event
   "Apply a previously committed event to the aggregate. This
