@@ -1,7 +1,7 @@
 (ns rill.wheel.repository-test
   (:require [rill.wheel.repository :as repo]
             [rill.wheel.aggregate :as aggregate :refer [defevent]]
-            [rill.temp-store :refer [given]]
+            [rill.event-store.memory :refer [memory-store]]
             [clojure.test :refer [deftest testing is]]))
 
 (defevent layed
@@ -39,10 +39,11 @@
     (let [repo (mk-repo)
           empty-aggregate (repo/fetch repo {:prop :unknown})]
       (is (aggregate/aggregate? empty-aggregate))
-      (is (= -1 (::aggregate/version empty-aggregate)))
+      (is (aggregate/empty? empty-aggregate))
       (is (repo/commit! repo empty-aggregate))
       (let [fetched (repo/fetch repo {:prop :unknown})]
         (is (= fetched empty-aggregate))))))
 
 (deftest test-bare-repository
-  (subtest-fetch-and-store #(repo/bare-repository (given []))))
+  (subtest-fetch-and-store #(repo/bare-repository (memory-store))))
+

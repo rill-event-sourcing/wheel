@@ -6,5 +6,4 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [rill-event-sourcing/rill.event_store "0.2.1"]
                  [rill-event-sourcing/rill.temp_store "0.2.1"]
-                 [identifiers "1.2.0"]
                  [org.clojure/core.cache "0.6.5"]])

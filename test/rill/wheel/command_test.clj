@@ -1,9 +1,8 @@
 (ns rill.wheel.command-test
   (:require [clojure.test :refer [deftest is testing]]
-            [rill.temp-store :refer [given]]
             [rill.wheel
              [aggregate :as aggregate :refer [defevent]]
-             [caching-repository :refer [caching-repository]]
+             [testing :refer [ephemeral-repository]]
              [command :as command :refer [defcommand ok? rejection]]
              [repository :as repo]]))
 
@@ -58,7 +57,7 @@
         "additional arity veriant calls handler with created event")))
 
 (deftest aggregate-creation-test
-  (let [repo (caching-repository (given []))]
+  (let [repo (ephemeral-repository)]
     (is (ok? (create-or-fail repo "user@example.com" "Full Name")))
     (is (= {:rill.wheel.aggregate/id      "user@example.com"
             :rill.wheel.aggregate/version 0

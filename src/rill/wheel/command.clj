@@ -13,7 +13,7 @@
   (= (::status result) :conflict))
 
 (defn ok [aggregate]
-  {::status :ok ::events (::new-events aggregate) ::aggregate aggregate})
+  {::status :ok ::events (::aggregate/new-events aggregate) ::aggregate aggregate})
 
 (defn rejection
   [aggregate reason]
