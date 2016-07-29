@@ -1,5 +1,5 @@
 (ns rill.wheel.aggregate
-  (:refer-clojure :exclude [empty])
+  (:refer-clojure :exclude [empty empty?])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns]]))
 
@@ -22,7 +22,21 @@
   events. Aggregate version will be -1. Note that empty aggregates
   cannot be stored."
   [aggregate-id]
-  {::id aggregate-id ::version -1})
+  (let [base {::id aggregate-id ::version -1}]
+    (if (map? aggregate-id)
+      (merge base aggregate-id)
+      base)))
+
+(defn new?
+  "Test that the aggregate has no committed events."
+  [aggregate]
+  (= (::version aggregate) -1))
+
+(defn empty?
+  "Test that the aggregate is new and has no uncommitted events"
+  [aggregate]
+  (and (new? aggregate)
+       (clojure.core/empty? (::new-events aggregate))))
 
 (defn aggregate?
   "Test that `obj` is an aggregate"

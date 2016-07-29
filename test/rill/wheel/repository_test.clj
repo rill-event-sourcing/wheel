@@ -2,7 +2,7 @@
   (:require [rill.wheel.repository :as repo]
             [rill.wheel.aggregate :as aggregate :refer [defevent]]
             [rill.temp-store :refer [given]]
-            [clojure.test :refer [deftest is]]))
+            [clojure.test :refer [deftest testing is]]))
 
 (defevent layed
   [creature]
@@ -16,19 +16,33 @@
 
 (defn subtest-fetch-and-store
   [mk-repo]
-  (let [repo (mk-repo)
-        bird (-> (aggregate/empty :bird-id)
-                 layed
-                 hatched)]
-    (is (:bird? bird)
-        "events applied")
-    (is (repo/commit! repo bird)
-        "commit succeeded")
-    (is (= {::aggregate/id      :bird-id
-            ::aggregate/version 1
-            :egg?               false
-            :bird?              true}
-           (repo/fetch repo :bird-id)))))
+  (testing "aggregate with events"
+    (let [repo (mk-repo)
+          bird (-> (aggregate/empty {::species :bird
+                                     ::id      :id})
+                   layed
+                   hatched)]
+      (is (:bird? bird)
+          "events applied")
+      (is (repo/commit! repo bird)
+          "commit succeeded")
+      (is (= {::aggregate/id      {::species :bird
+                                   ::id      :id}
+              ::aggregate/version 1
+              ::species           :bird
+              ::id                :id
+              :egg?               false
+              :bird?              true}
+             (repo/fetch repo {::species :bird
+                               ::id      :id})))))
+  (testing "empty aggregate"
+    (let [repo (mk-repo)
+          empty-aggregate (repo/fetch repo {:prop :unknown})]
+      (is (aggregate/aggregate? empty-aggregate))
+      (is (= -1 (::aggregate/version empty-aggregate)))
+      (is (repo/commit! repo empty-aggregate))
+      (let [fetched (repo/fetch repo {:prop :unknown})]
+        (is (= fetched empty-aggregate))))))
 
 (deftest test-bare-repository
   (subtest-fetch-and-store #(repo/bare-repository (given []))))

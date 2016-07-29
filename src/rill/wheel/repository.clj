@@ -10,18 +10,18 @@
   Returns `true` on success or when there are no new events.")
   (fetch [repo aggregate-id]
     "Fetch an aggregate by constructing it from its stored events.
-  Returns nil if no events are stored for the given `aggregate-id`"))
+  Returns new empty aggregate if no events are stored for the given
+  `aggregate-id`"))
 
 (defrecord BareRepository [event-store]
   Repository
   (commit! [repo aggregate]
-    {:pre [(::id aggregate)]}
+    (assert (aggregate/aggregate? aggregate) (str "Attempt to commit non-aggregate " (pr-str aggregate)))
     (if-let [events (seq (::aggregate/new-events aggregate))]
       (event-store/append-events event-store (::aggregate/id aggregate) (::aggregate/version aggregate) events)
       true))
   (fetch [repo aggregate-id]
-    (when-let [events (seq (event-store/retrieve-events event-store aggregate-id))]
-      (reduce aggregate/apply-stored-event (aggregate/empty aggregate-id) events))))
+    (reduce aggregate/apply-stored-event (aggregate/empty aggregate-id) (event-store/retrieve-events event-store aggregate-id))))
 
 (defn bare-repository
   "A bare-bones repository that stores its events in a rill

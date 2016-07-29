@@ -15,10 +15,11 @@
 (defcommand create-or-fail
   "Create user if none exists with the given email address."
   [repo email full-name]
-  (if-let [user (repo/fetch repo email)]
-    (rejection user (format "User with mail '%s' already exists" email))
-    (-> (aggregate/empty email)
-        (user-created email full-name))))
+  (let [user (repo/fetch repo email)]
+    (if-not (aggregate/new? user)
+      (rejection user (format "User with mail '%s' already exists" email))
+      (-> (aggregate/empty email)
+          (user-created email full-name)))))
 
 (defevent user-name-changed
   "user's `full-name` changed to `new-name`"
@@ -27,9 +28,10 @@
 
 (defcommand rename
   [repo email new-name]
-  (if-let [user (repo/fetch repo email)]
-    (user-name-changed user new-name)
-    (rejection nil (format "No user with mail '%s' exists" email))))
+  (let [user (repo/fetch repo email)]
+    (if-not (aggregate/new? user)
+      (user-name-changed user new-name)
+      (rejection user (format "No user with mail '%s' exists" email)))))
 
 (deftest defevent-test
   (let [event (user-created "user@example.com" "joost")]

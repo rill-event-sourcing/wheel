@@ -29,15 +29,11 @@
                                  (::aggregate/version aggregate) events)
       true))
   (fetch [repo aggregate-id]
-    (let [a       (aggregate-atom cache aggregate-id)
-          ;; not using `swap!` here because update-aggregate might block
-          ;; on network to event store. worst case, we need to fetch a few
-          ;; more events next time we fetch this aggregate.
-          updated (reset! a (update-aggregate @a event-store))]
-
-      ;; return nil instead of empty aggregate
-      (when-not (= -1 (::aggregate/version updated))
-        updated))))
+    (let [a (aggregate-atom cache aggregate-id)]
+      ;; not using `swap!` here because update-aggregate might block
+      ;; on network to event store. worst case, we need to fetch a few
+      ;; more events next time we fetch this aggregate.
+      (reset! a (update-aggregate @a event-store)))))
 
 (defn caching-repository
   ([event-store cache]
