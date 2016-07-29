@@ -1,6 +1,7 @@
 (ns rill.wheel.aggregate
   (:refer-clojure :exclude [empty empty?])
   (:require [rill.event-store :refer [retrieve-events append-events]]
+            [rill.wheel.repository :as repo]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns]]))
 
 (defmulti apply-event
@@ -64,10 +65,10 @@
 
   The given `body` defines an `apply-event` multimethod that
   applies the event to the aggregate."
-  {:arglists '([name doc-string? [aggregate properties*] pre-post-map? body])}
+  {:arglists '([name doc-string? attr-map? [aggregate properties*] pre-post-map? body])}
   [& args]
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
-        n (vary-meta n assoc :rill.wheel.aggregate/event-fn true)]
+        n                                                    (vary-meta n assoc :rill.wheel.aggregate/event-fn true)]
     `(do (defmethod apply-event ~(keyword-in-current-ns n)
            [~aggregate {:keys ~(vec properties)}]
            ~@body)
@@ -80,3 +81,15 @@
            (~handler-args
             (apply-new-event ~aggregate (~n ~@properties)))))))
 
+(defmacro defaggregate
+  "Defines an aggregate descriptor function."
+  {:arglists '([name doc-string? attr-map? [aggregate properties*] pre-post-map? body])}
+  [& args]
+  (let [[n descriptor-args & body] (parse-args args)
+        n                          (vary-meta n assoc :rill.wheel.aggregate/descriptor-fn true)
+        repo-arg `repository#]
+    `(defn ~n
+       (~(vec descriptor-args)
+        ~@body)
+       (~(into [repo-arg] descriptor-args)
+        (repo/fetch ~repo-arg (apply ~n ~descriptor-args))))))

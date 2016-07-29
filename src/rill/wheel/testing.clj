@@ -1,7 +1,7 @@
 (ns rill.wheel.testing
   "Tools for unit-testing ring.wheel code."
   (:require [rill.event-store.memory :refer [memory-store]]
-            [rill.wheel.repository :refer [bare-repository]]))
+            [rill.wheel.bare-repository :refer [bare-repository]]))
 
 (defn sub?
   "true if sub is either nil, equal to x, or a recursive subcollection

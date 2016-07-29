@@ -1,10 +1,10 @@
 (ns rill.wheel.command-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [rill.wheel
              [aggregate :as aggregate :refer [defevent]]
-             [testing :refer [ephemeral-repository]]
              [command :as command :refer [defcommand ok? rejection]]
-             [repository :as repo]]))
+             [repository :as repo]
+             [testing :refer [ephemeral-repository]]]))
 
 (defevent user-created
   "A new user was created"

@@ -1,8 +1,10 @@
 (ns rill.wheel.repository-test
-  (:require [rill.wheel.repository :as repo]
-            [rill.wheel.aggregate :as aggregate :refer [defevent]]
+  (:require [clojure.test :refer [deftest is testing]]
             [rill.event-store.memory :refer [memory-store]]
-            [clojure.test :refer [deftest testing is]]))
+            [rill.wheel
+             [aggregate :as aggregate :refer [defevent]]
+             [bare-repository :refer [bare-repository]]
+             [repository :as repo]]))
 
 (defevent layed
   [creature]
@@ -36,7 +38,7 @@
              (repo/fetch repo {::species :bird
                                ::id      :id})))))
   (testing "empty aggregate"
-    (let [repo (mk-repo)
+    (let [repo            (mk-repo)
           empty-aggregate (repo/fetch repo {:prop :unknown})]
       (is (aggregate/aggregate? empty-aggregate))
       (is (aggregate/empty? empty-aggregate))
@@ -45,5 +47,4 @@
         (is (= fetched empty-aggregate))))))
 
 (deftest test-bare-repository
-  (subtest-fetch-and-store #(repo/bare-repository (memory-store))))
-
+  (subtest-fetch-and-store #(bare-repository (memory-store))))
