@@ -12,7 +12,15 @@
 
 ## Usage
 
+## Changelog
 
+### Next release
+
+... to be filled in
+
+### v0.1.1
+
+Initial release
 
 ## License
 
