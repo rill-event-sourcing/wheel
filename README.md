@@ -16,7 +16,7 @@
 
 ### Next release
 
-... to be filled in
+Add `rill.wheel.check` namespace for checking model consistency.
 
 ### v0.1.1
 
