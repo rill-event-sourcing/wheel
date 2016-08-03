@@ -16,7 +16,9 @@
 
 ### Next release
 
-Add `rill.wheel.check` namespace for checking model consistency.
+  - Added `rill.wheel.check` namespace for checking model consistency.
+  - Enforcing use of `:rill.wheel.command/events` key on command
+    definitions.
 
 ### v0.1.1
 

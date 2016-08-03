@@ -36,7 +36,7 @@
 
   Returns a `rejection`, an `ok` result or a `conflict`
 
-  The metadata of the command may contain a :rill.wheel.events key,
+  The metadata of the command MUST contain a :rill.wheel.events key,
   which will specify the types of the events that may be generated. As
   a convenience, the corresponding event functions are `declare`d
   automatically so the `defevent` statements can be written after the
@@ -56,15 +56,14 @@
   [& args]
   (let [[n [repository & properties :as fn-args] & body] (parse-args args)
         n                                                (vary-meta n assoc :rill.wheel.command/command-fn true)]
-    `(do ~(when-let [event-keys (::events (meta n))]
+    `(do ~(if-let [event-keys (::events (meta n))]
             `(declare ~@(map (fn [k]
                                (symbol (subs (str k) 1)))
-                             event-keys)))
+                             event-keys))
+            (throw (IllegalArgumentException. "command has no events specified")))
 
          (defn ~n ~(vec fn-args)
            (let [result# (do ~@body)]
              (if (rejection? result#)
                result#
                (commit! result# ~repository)))))))
-
-

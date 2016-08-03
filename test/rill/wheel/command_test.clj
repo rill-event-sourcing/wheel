@@ -6,13 +6,9 @@
              [repository :as repo]
              [testing :refer [ephemeral-repository]]]))
 
-(defevent user-created
-  "A new user was created"
-  [user email full-name]
-  (assoc user :email email :full-name full-name))
-
 (defcommand create-or-fail
   "Create user if none exists with the given email address."
+  {::command/events [::user-created]}
   [repo email full-name]
   (let [user (repo/fetch repo email)]
     (if-not (aggregate/new? user)
@@ -20,17 +16,24 @@
       (-> (aggregate/empty email)
           (user-created email full-name)))))
 
-(defevent user-name-changed
-  "user's `full-name` changed to `new-name`"
-  [user new-name]
-  (assoc user :full-name new-name))
+(defevent user-created
+  "A new user was created"
+  [user email full-name]
+  (assoc user :email email :full-name full-name))
 
 (defcommand rename
+  {::command/events [::user-name-changed]}
   [repo email new-name]
   (let [user (repo/fetch repo email)]
     (if-not (aggregate/new? user)
       (user-name-changed user new-name)
       (rejection user (format "No user with mail '%s' exists" email)))))
+
+(defevent user-name-changed
+  "user's `full-name` changed to `new-name`"
+  [user new-name]
+  (assoc user :full-name new-name))
+
 
 (deftest defevent-test
   (let [event (user-created "user@example.com" "joost")]
