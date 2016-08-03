@@ -1,4 +1,4 @@
-(defproject rill-event-sourcing/wheel "0.1.1"
+(defproject rill-event-sourcing/wheel "0.1.2"
   :description "simpler command/aggregate handling for rill"
   :url "https://github.com/rill-event-sourcing//wheel"
   :license {:name "Eclipse Public License"
