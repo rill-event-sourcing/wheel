@@ -1,0 +1,15 @@
+digraph commands {
+        layout=circo
+        edge [labelfloat=true fontname="sans-serif"];
+        node [fontname="sans-serif"];
+        
+        EventStream [shape=box]
+        FetchAggregate [label="Fetch\nAggregate"]
+        EventStream -> FetchAggregate [label="Events"]
+        FetchAggregate -> Execute
+        Execute -> Execute [label="Generate Events"]
+        Execute
+        Execute -> Commit
+        Commit [label="Commit\nAggregate"]
+        Commit -> EventStream [label="Events"]
+}
