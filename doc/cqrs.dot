@@ -1,0 +1,14 @@
+digraph cqrs {
+        rankdir=LR;
+        node [fontname="sans-serif"];
+
+        CommandSide [label="Command Side" shape=box]
+        CommandSide -> EventStore
+        EventStore -> CommandSide
+        EventStore [label="Event Store" shape="circle"]
+        EventStore -> QuerySide
+        QuerySide [label="Query Side" shape=box]
+        QuerySide -> Queries [arrowhead=dot]
+        QuerySide -> Views [arrowhead=dot]
+
+}
