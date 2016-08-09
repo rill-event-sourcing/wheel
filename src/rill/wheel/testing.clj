@@ -32,14 +32,24 @@
                #{:a :b}))
     (sub? :something
           :something)
-"
+    (sub? [:1 :2 :3]
+          (list :1 :2 :3))
+    (sub? [:1 :2]
+          (list :1 :2 :3))
+    (sub? (list :1 :2 :3)
+          [:1 :2 :3])
+    (not (sub? (list nil 2)
+               [:1 :2 :3]))
+  "
   [sub x]
   (cond (nil? sub)
         true
         (sequential? sub)
-        (every? (fn [[i el]]
-                  (sub? el (get x i)))
-                (map-indexed vector sub))
+        (and (<= (count sub)
+                 (count x))
+             (every? (fn [[i el]]
+                          (sub? el (nth x i)))
+                        (map-indexed vector sub)))
         (map? sub)
         (every? (fn [[k v]] (sub? v (get x k)))
                 sub)
@@ -54,4 +64,3 @@
   "Return an empty repostory backed by an in-memory event-store."
   []
   (bare-repository (memory-store)))
-

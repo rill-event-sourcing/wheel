@@ -23,6 +23,12 @@
     (not (sub? #{:a :c}
                #{:a :b}))
     (sub? :something
-          :something)))
-
-
+          :something)
+    (sub? [:1 :2 :3]
+          (list :1 :2 :3))
+    (sub? [:1 :2]
+          (list :1 :2 :3))
+    (sub? (list :1 :2 :3)
+          [:1 :2 :3])
+    (not (sub? (list nil 2)
+               [:1 :2 :3]))))

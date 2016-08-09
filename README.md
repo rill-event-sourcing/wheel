@@ -16,6 +16,9 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.3
+  - Fixed `rill.wheel.testing/sub?` checking seqs with lists.
+
 ### v0.1.2
 
   - Added `rill.wheel.check` namespace for checking model consistency.
