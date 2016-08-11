@@ -11,8 +11,8 @@
     (if-let [events (seq (::aggregate/new-events aggregate))]
       (event-store/append-events event-store (::aggregate/id aggregate) (::aggregate/version aggregate) events)
       true))
-  (fetch [repo aggregate-id]
-    (reduce aggregate/apply-stored-event (aggregate/empty aggregate-id) (event-store/retrieve-events event-store aggregate-id))))
+  (update [repo aggregate]
+    (reduce aggregate/apply-stored-event aggregate (event-store/retrieve-events-since event-store (::aggregate/id aggregate) (::aggregate/version aggregate) 0))))
 
 (defn bare-repository
   "A bare-bones repository that stores its events in a rill

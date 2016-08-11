@@ -18,8 +18,7 @@
   id. In this example all we care about is whether an account exists
   at all."
   [account-id]
-  {:pre [(keyword? account-id)]} ; typically, we'd use a UUID or something
-  {:account-id account-id})
+  {:pre [(keyword? account-id)]}) ; typically, we'd use a UUID or something
 
 ;;;;
 ;;;; An account can be registered and that's pretty much it
@@ -63,8 +62,7 @@ multiple times), or taken by a single account.
 When ownership is taken, it cannot be claimed or owned by other
 accounts."
   [email-address]
-  {:pre [(string? email-address)]}
-  {:email-address email-address})
+  {:pre [(string? email-address)]})
 
 (defn random-secret
   []

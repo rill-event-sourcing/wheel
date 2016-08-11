@@ -13,9 +13,7 @@
 
 
 (defaggregate person
-  [given-name family-name]
-  (sorted-map :given-name  given-name
-              :family-name family-name))
+  [given-name family-name])
 
 (defevent registered
   [p]
@@ -30,7 +28,7 @@
     (is (sub? [{::msg/type   ::registered
                 :given-name  "Alice"
                 :family-name "Appleseed"}]
-              (retrieve-events store (person "Alice" "Appleseed"))))
+              (retrieve-events store (::aggregate/id (person "Alice" "Appleseed")))))
     (is (sub? [{::msg/type   ::registered
                 :given-name  "Alice"
                 :family-name "Appleseed"}]

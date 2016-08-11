@@ -16,6 +16,13 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.5
+  Some breaking API updates.
+  - defaggregate builds the aggregate constructor automatically
+  - aggregate id is a map of identifying properties
+  - repository protocol does `update` instead of
+    `fetch`.
+
 ### v0.1.4
   - Finished `rill.wheel.wrap-stream-properties`.
 

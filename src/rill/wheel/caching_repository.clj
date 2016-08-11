@@ -2,7 +2,8 @@
   (:require [rill.event-store :as event-store]
             [rill.wheel.aggregate :as aggregate]
             [rill.wheel.repository :refer [Repository]]
-            [clojure.core.cache :as cache]))
+            [clojure.core.cache :as cache])
+  (:refer-clojure :exclude [update]))
 
 (defn ensure-aggregate-atom-is-in-cache
   [state aggregate-id]
@@ -28,12 +29,17 @@
       (event-store/append-events event-store (::aggregate/id aggregate)
                                  (::aggregate/version aggregate) events)
       true))
-  (fetch [repo aggregate-id]
-    (let [a (aggregate-atom cache aggregate-id)]
+  (update [repo supplied-aggregate]
+    (let [a (aggregate-atom cache (::aggregate/id supplied-aggregate))
+          fetched-aggregate @a
+          to-update (if (< (::aggregate/version supplied-aggregate)
+                           (::aggregate/version fetched-aggregate))
+                      fetched-aggregate
+                      supplied-aggregate)]
       ;; not using `swap!` here because update-aggregate might block
       ;; on network to event store. worst case, we need to fetch a few
       ;; more events next time we fetch this aggregate.
-      (reset! a (update-aggregate @a event-store)))))
+      (reset! a (update-aggregate to-update event-store)))))
 
 (defn caching-repository
   ([event-store cache]
