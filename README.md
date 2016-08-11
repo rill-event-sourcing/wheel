@@ -16,7 +16,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### v0.1.4-SNAPSHOT
+### v0.1.4
   - Finished `rill.wheel.wrap-stream-properties`.
 
 ### v0.1.3
