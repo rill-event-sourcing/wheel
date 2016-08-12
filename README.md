@@ -18,6 +18,8 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ### NEXT
   - Documentation improvements
+  - (breaking/fix) preconditions on `defevent` go on the event
+    constructor.
 
 ### v0.1.6
   - (breaking) aggregate ids now include the aggregate type

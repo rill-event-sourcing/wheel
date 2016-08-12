@@ -22,3 +22,11 @@
 (defn keyword-in-current-ns
   [sym]
   (keyword (name (ns-name *ns*)) (name sym)))
+
+(defn parse-pre-post
+  [[prepost & rst :as body]]
+  (if (and (map? prepost)
+           (or (contains? prepost :pre)
+               (contains? prepost :post)))
+    [prepost rst]
+    [nil body]))

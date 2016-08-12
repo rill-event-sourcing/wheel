@@ -1,47 +1,48 @@
 (ns rill.wheel.aggregate
+
   "## Defining aggregates and events
 
-### Synopsis
+  ### Synopsis
 
-    (require '[rill.wheel.aggregate :as aggregate
-               :refer [defaggregate defevent]])
+      (require '[rill.wheel.aggregate :as aggregate
+                 :refer [defaggregate defevent]])
 
-    (defaggregate user
-      \"a user is identified by a single `email` property\"
-      [email])
+      (defaggregate user
+        \"a user is identified by a single `email` property\"
+        [email])
 
-    (defevent registered
-      \"user was correctly registered\"
-      [user]
-      (assoc user :registered? true))
+      (defevent registered
+        \"user was correctly registered\"
+        [user]
+        (assoc user :registered? true))
 
-    (defevent unregistered
-      \"user has unregistered\"
-      [user]
-      (dissoc user :registered?))
+      (defevent unregistered
+        \"user has unregistered\"
+        [user]
+        (dissoc user :registered?))
 
-    (-> (user \"user@example.com\") registered :registered?)
-      => true
+      (-> (user \"user@example.com\") registered :registered?)
+        => true
 
-    (registered-event (user \"user@example.com\"))
-      => {:rill.message/type :user/registered, 
-          :email \"user@example.com\",
-          :rill.wheel.aggregate/type :user/user}
+      (registered-event (user \"user@example.com\"))
+        => {:rill.message/type :user/registered,
+            :email \"user@example.com\",
+            :rill.wheel.aggregate/type :user/user}
 
-    (aggregate/new-events some-aggreate)
-      => seq-of-events
+      (aggregate/new-events some-aggreate)
+        => seq-of-events
 
-### See also
+  ### See also
 
   - `rill.wheel.command`
   - `rill.event-store`
-" 
+  "
   {:doc/format :markdown}
 
   (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
-            [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns]]))
+            [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns parse-pre-post]]))
 
 (defmulti apply-event
   "Update the properties of `aggregate` given `event`. Implementation
@@ -120,8 +121,12 @@
   the corresponding `defaggregate`.
 
   For cases where you only need the event and can ignore the
-  aggregate, an alternate function \"{name}-event\" is defined with
-  the same signature.
+  aggregate, the function \"{name}-event\" is defined with the same
+  signature. This function is used by the \"{name}\" function to
+  generate the event befor calling `apply-event` (see below).
+
+  The given `prepost-map`, if supplied gets included in the definiton
+  of the \"{name}-event\" function.
 
   The given `body`, if supplied, defines an `apply-event` multimethod
   that applies the event to the aggregate. If no `body` is supplied,
@@ -130,6 +135,7 @@
   {:arglists '([name doc-string? attr-map? [aggregate properties*] pre-post-map?  body*])}
   [& args]
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
+        [prepost body]                                       (parse-pre-post body)
         n                                                    (vary-meta n assoc :rill.wheel.aggregate/event-fn true)
         n-event                                              (symbol (str (name n) "-event"))]
     `(do ~(when (seq body)
@@ -138,6 +144,8 @@
                ~@body))
          (defn ~n-event
            (~handler-args
+            ~@(when prepost
+                [prepost])
             (merge-aggregate-props ~aggregate
                                    ~(into {:rill.message/type (keyword-in-current-ns n)}
                                           (map (fn [k]
@@ -153,15 +161,14 @@
   [& args]
   (let [[n descriptor-args & body] (parse-args args)
         n                          (vary-meta n assoc :rill.wheel.aggregate/descriptor-fn true)
+        [prepost body]             (parse-pre-post body)
         repo-arg                   `repository#]
-    (when (and (seq body)
-               (or (< 1 (count (seq body)))
-                   (not (map? (first body)))
-                   (not (or (:pre (first body))
-                            (:post (first body))))))
+    (when (seq body)
       (throw (IllegalArgumentException. "defaggregate takes only pre-post-map as after properties vector.")))
     `(defn ~n
        (~(vec descriptor-args)
+        ~@(when prepost
+            [prepost])
         (empty (sorted-map ::type ~(keyword-in-current-ns n)
                            ~@(mapcat (fn [k]
                                        [(keyword k) k])
