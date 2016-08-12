@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### NEXT
+  - (breaking) aggregate ids now include the aggregate type
+  - body of `defevent` is now optional
+
 ### v0.1.5
   Some breaking API updates.
   - defaggregate builds the aggregate constructor automatically

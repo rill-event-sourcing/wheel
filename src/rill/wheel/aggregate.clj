@@ -1,5 +1,5 @@
 (ns rill.wheel.aggregate
-  (:refer-clojure :exclude [empty empty?])
+  (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns]]))
@@ -9,6 +9,10 @@
   for different event types will be given by `defevent`"
   (fn [aggregate event]
     (:rill.message/type event)))
+
+(defmethod apply-event :default
+  [aggregate _]
+  aggregate)
 
 (defn apply-new-event
   "Apply a new event to the aggregate. The new events will be committed
@@ -66,7 +70,6 @@
       (apply-event event)
       (update ::version inc)))
 
-;;---TODO(joost) make body optional; should return aggregate
 (defmacro defevent
   "Defines function that takes aggregate + properties, constructs an
   event and applies the event as a new event to aggregate. Properties
@@ -74,15 +77,18 @@
   do not define properties with `defevent` that are already defined in
   the corresponding `defaggregate`.
 
-  The given `body` defines an `apply-event` multimethod that applies
-  the event to the aggregate.  {:arglists '([name doc-string?
-  attr-map? [aggregate properties*] pre-post-map? body])}"
+  The given `body`, if supplied, defines an `apply-event` multimethod
+  that applies the event to the aggregate. If no `body` is supplied,
+  the default `apply-event` will be used, which will return the
+  aggregate as is."
+  {:arglists '([name doc-string? attr-map? [aggregate properties*] pre-post-map?  body*])}
   [& args]
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
         n                                                    (vary-meta n assoc :rill.wheel.aggregate/event-fn true)]
-    `(do (defmethod apply-event ~(keyword-in-current-ns n)
-           [~aggregate {:keys ~(vec properties)}]
-           ~@body)
+    `(do ~(when (seq body)
+            `(defmethod apply-event ~(keyword-in-current-ns n)
+               [~aggregate {:keys ~(vec properties)}]
+               ~@body))
          (defn ~n
            (~handler-args
             (apply-new-event ~aggregate
@@ -106,9 +112,14 @@
       (throw (IllegalArgumentException. "defaggregate takes only pre-post-map as after properties vector.")))
     `(defn ~n
        (~(vec descriptor-args)
-        (empty (sorted-map
-                ~@(mapcat (fn [k]
-                            [(keyword k) k])
-                          descriptor-args))))
+        (empty (sorted-map ::type ~(keyword-in-current-ns n)
+                           ~@(mapcat (fn [k]
+                                       [(keyword k) k])
+                                     descriptor-args))))
        (~(into [repo-arg] descriptor-args)
         (repo/update ~repo-arg (apply ~n ~descriptor-args))))))
+
+(defn type
+  "Return the type of this aggregate"
+  [aggregate]
+  (::type aggregate))

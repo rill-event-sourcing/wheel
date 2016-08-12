@@ -36,24 +36,45 @@
   [user new-name]
   (assoc user :full-name new-name))
 
+(defevent no-op
+  "To test events with no body"
+  [user arg1 arg2])
 
 (deftest defevent-test
-  (is (= {::aggregate/id         {:email "user@example.com"}
+  (is (= {::aggregate/id         {::aggregate/type ::user
+                                  :email           "user@example.com"}
           :full-name             "joost"
           :email                 "user@example.com"
+          ::aggregate/type       ::user
           ::aggregate/version    -1
           ::aggregate/new-events [{:rill.message/type ::created
+                                   ::aggregate/type   ::user
                                    :email             "user@example.com"
                                    :full-name         "joost"}]}
          (-> (user "user@example.com")
              (created "joost")))
-      "Event fn calls handler with created event"))
+      "Event fn calls handler with created event")
+
+  (is (= {::aggregate/id         {::aggregate/type ::user
+                                  :email           "user@example.com"}
+          :email                 "user@example.com"
+          ::aggregate/type       ::user
+          ::aggregate/version    -1
+          ::aggregate/new-events [{:rill.message/type ::no-op
+                                   ::aggregate/type   ::user
+                                   :email                 "user@example.com"
+                                   :arg1 1
+                                   :arg2 2}]}
+         (-> (user "user@example.com")
+             (no-op 1 2)))))
 
 (deftest aggregate-creation-test
   (let [repo (ephemeral-repository)]
     (is (ok? (create-or-fail repo "user@example.com" "Full Name")))
-    (is (= {:rill.wheel.aggregate/id      {:email "user@example.com"}
-            :rill.wheel.aggregate/version 0
-            :full-name                    "Full Name"
-            :email                        "user@example.com"}
+    (is (= {::aggregate/id      {:email           "user@example.com"
+                                 ::aggregate/type ::user}
+            ::aggregate/type    ::user
+            ::aggregate/version 0
+            :full-name          "Full Name"
+            :email              "user@example.com"}
            (repo/update repo (user "user@example.com"))))))

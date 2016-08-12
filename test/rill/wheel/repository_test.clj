@@ -30,8 +30,10 @@
       (is (repo/commit! repo bird)
           "commit succeeded")
       (is (= {::aggregate/id      {:id      :my-id
-                                   :species :bird}
+                                   :species :bird
+                                   ::aggregate/type ::creature}
               ::aggregate/version 1
+              ::aggregate/type ::creature
               :species           :bird
               :id                :my-id
               :egg?               false
