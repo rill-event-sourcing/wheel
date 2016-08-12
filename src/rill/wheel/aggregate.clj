@@ -20,10 +20,7 @@
   [aggregate event]
   (-> aggregate
       (apply-event event)
-      (update ::new-events (fnil conj [])
-              (if (map? (::id aggregate))
-                (merge event (::id aggregate))
-                event))))
+      (update ::new-events (fnil conj []) event)))
 
 (defn new-events
   "The events that will be committed when this aggregate is committed."
@@ -70,12 +67,22 @@
       (apply-event event)
       (update ::version inc)))
 
+(defn merge-aggregate-props
+  [aggregate partial-event]
+  (if (map? (::id aggregate))
+    (merge partial-event (::id aggregate))
+    partial-event))
+
 (defmacro defevent
   "Defines function that takes aggregate + properties, constructs an
   event and applies the event as a new event to aggregate. Properties
   defined on the aggregate definition will be merged with the event;
   do not define properties with `defevent` that are already defined in
   the corresponding `defaggregate`.
+
+  For cases where you only need the event and can ignore the
+  aggregate, an alternate function \"{name}-event\" is defined with
+  the same signature.
 
   The given `body`, if supplied, defines an `apply-event` multimethod
   that applies the event to the aggregate. If no `body` is supplied,
@@ -84,18 +91,22 @@
   {:arglists '([name doc-string? attr-map? [aggregate properties*] pre-post-map?  body*])}
   [& args]
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
-        n                                                    (vary-meta n assoc :rill.wheel.aggregate/event-fn true)]
+        n                                                    (vary-meta n assoc :rill.wheel.aggregate/event-fn true)
+        n-event                                              (symbol (str (name n) "-event"))]
     `(do ~(when (seq body)
             `(defmethod apply-event ~(keyword-in-current-ns n)
                [~aggregate {:keys ~(vec properties)}]
                ~@body))
+         (defn ~n-event
+           (~handler-args
+            (merge-aggregate-props ~aggregate
+                                   ~(into {:rill.message/type (keyword-in-current-ns n)}
+                                          (map (fn [k]
+                                                 [(keyword k) k])
+                                               properties)))))
          (defn ~n
            (~handler-args
-            (apply-new-event ~aggregate
-                             ~(into {:rill.message/type (keyword-in-current-ns n)}
-                                    (map (fn [k]
-                                           [(keyword k) k])
-                                         properties))))))))
+            (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))))))
 
 (defmacro defaggregate
   "Defines an aggregate type."

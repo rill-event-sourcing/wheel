@@ -55,6 +55,14 @@
              (created "joost")))
       "Event fn calls handler with created event")
 
+  (is (= {:rill.message/type ::created
+          ::aggregate/type   ::user
+          :email             "user@example.com"
+          :full-name         "joost"}
+         (-> (user "user@example.com")
+             (created-event "joost")))
+      "Can create event standalone")
+
   (is (= {::aggregate/id         {::aggregate/type ::user
                                   :email           "user@example.com"}
           :email                 "user@example.com"
@@ -62,9 +70,9 @@
           ::aggregate/version    -1
           ::aggregate/new-events [{:rill.message/type ::no-op
                                    ::aggregate/type   ::user
-                                   :email                 "user@example.com"
-                                   :arg1 1
-                                   :arg2 2}]}
+                                   :email             "user@example.com"
+                                   :arg1              1
+                                   :arg2              2}]}
          (-> (user "user@example.com")
              (no-op 1 2)))))
 

@@ -19,6 +19,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 ### NEXT
   - (breaking) aggregate ids now include the aggregate type
   - body of `defevent` is now optional
+  - (breaking) `defevent` creates additional `{name}-event` function
 
 ### v0.1.5
   Some breaking API updates.
