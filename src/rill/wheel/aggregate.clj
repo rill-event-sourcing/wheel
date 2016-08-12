@@ -1,4 +1,43 @@
 (ns rill.wheel.aggregate
+  "## Defining aggregates and events
+
+### Synopsis
+
+    (require '[rill.wheel.aggregate :as aggregate
+               :refer [defaggregate defevent]])
+
+    (defaggregate user
+      \"a user is identified by a single `email` property\"
+      [email])
+
+    (defevent registered
+      \"user was correctly registered\"
+      [user]
+      (assoc user :registered? true))
+
+    (defevent unregistered
+      \"user has unregistered\"
+      [user]
+      (dissoc user :registered?))
+
+    (-> (user \"user@example.com\") registered :registered?)
+      => true
+
+    (registered-event (user \"user@example.com\"))
+      => {:rill.message/type :user/registered, 
+          :email \"user@example.com\",
+          :rill.wheel.aggregate/type :user/user}
+
+    (aggregate/new-events some-aggreate)
+      => seq-of-events
+
+### See also
+
+  - `rill.wheel.command`
+  - `rill.event-store`
+" 
+  {:doc/format :markdown}
+
   (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
