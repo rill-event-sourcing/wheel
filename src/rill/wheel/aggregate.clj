@@ -32,6 +32,15 @@
       (aggregate/new-events some-aggreate)
         => seq-of-events
 
+  ### Store and retrieve aggregates in a repository
+
+      (repository/commit some-repository
+            (-> (user \"user@example.com)
+                (registered)))
+      ;; ...
+      (get-user some-repository \"user@example.com\")
+
+
   ### See also
 
   - `rill.wheel.command`
@@ -155,15 +164,18 @@
            (~handler-args
             (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))))))
 
-;;---TODO(Joost) name getter function "get-aggregate-nane" or
-;;---"fetch-aggregate-name" instead of plain "aggregate-name"
-                                        ;
-
 ;;---TODO(Joost) allow for inlining event definitions in the aggregate
 ;;---possibly also commands.
 (defmacro defaggregate
-  "Defines an aggregate type."
-  {:arglists '([name doc-string? attr-map? [properties*] pre-post-map?])}
+  "Defines an aggregate type, and aggregate-id function. The
+  aggregate's id key is a map with a key for every property in
+  `properties*`, plus the aggregate type, a qualified keyword from
+  `name`.
+
+  Also defines a function `get-{name}`, which takes an additional
+  first repository argument and retrieves the aggregate."
+  {:arglists '([name
+  doc-string? attr-map? [properties*] pre-post-map?])}
   [& args]
   (let [[n descriptor-args & body] (parse-args args)
         n                          (vary-meta n assoc :rill.wheel.aggregate/descriptor-fn true)
@@ -171,16 +183,18 @@
         repo-arg                   `repository#]
     (when (seq body)
       (throw (IllegalArgumentException. "defaggregate takes only pre-post-map as after properties vector.")))
-    `(defn ~n
-       (~(vec descriptor-args)
-        ~@(when prepost
-            [prepost])
-        (empty (sorted-map ::type ~(keyword-in-current-ns n)
-                           ~@(mapcat (fn [k]
-                                       [(keyword k) k])
-                                     descriptor-args))))
-       (~(into [repo-arg] descriptor-args)
-        (repo/update ~repo-arg (apply ~n ~descriptor-args))))))
+    `(do (defn ~n
+           ~(vec descriptor-args)
+           ~@(when prepost
+               [prepost])
+           (empty (sorted-map ::type ~(keyword-in-current-ns n)
+                              ~@(mapcat (fn [k]
+                                          [(keyword k) k])
+                                        descriptor-args))))
+         (defn ~(symbol (str "get-" (name n)))
+           ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
+           ~(into [repo-arg] descriptor-args)
+           (repo/update ~repo-arg (apply ~n ~descriptor-args))))))
 
 (defn type
   "Return the type of this aggregate"

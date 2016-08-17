@@ -23,7 +23,7 @@
   (let [store (-> (memory-store)
                   (wrap-stream-properties))
         repo  (bare-repository store)]
-    (is (repo/commit! repo (-> (person repo "Alice" "Appleseed")
+    (is (repo/commit! repo (-> (get-person repo "Alice" "Appleseed")
                                (registered))))
     (is (sub? [{::msg/type   ::registered
                 :given-name  "Alice"

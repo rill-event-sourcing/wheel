@@ -29,7 +29,7 @@
   generated somewhere else and should be unique."
   {::command/events [::account-registered]}
   [repo account-id full-name]
-  (let [account (account repo account-id)]
+  (let [account (get-account repo account-id)]
     (if (aggregate/exists account)
       (command/rejection account "Account with id already exists")
       (account-registered account full-name))))
@@ -76,9 +76,9 @@ account. Otherwise the email address needs to be confirmed within some
 amount of time."
   {::command/events [::email-address-claimed]}
   [repo claiming-account-id email-address]
-  (let [account (account repo claiming-account-id)]
+  (let [account (get-account repo claiming-account-id)]
     (if (aggregate/exists account)
-      (let [{current-owner :account-id :as ownership} (email-ownership repo email-address)]
+      (let [{current-owner :account-id :as ownership} (get-email-ownership repo email-address)]
         (if (and current-owner (not= claiming-account-id (:account-id ownership)))
           (command/rejection ownership "Email address is already taken")
           (email-address-claimed ownership claiming-account-id (random-secret))))
@@ -107,7 +107,7 @@ This command expires an email confirmation attempt. In a production
 environment this might be called by a background worker."
   {::command/events [::email-address-confirmation-expired]}
   [repo account-id email-address secret]
-  (let [ownership (email-ownership repo email-address)]
+  (let [ownership (get-email-ownership repo email-address)]
     (if (aggregate/exists ownership)
       (email-address-confirmation-expired ownership account-id secret)
       (command/rejection ownership "No activity on this email address"))))
@@ -129,7 +129,7 @@ environment this might be called by a background worker."
   earlier."
   {::command/events [::email-address-taken]}
   [repo account-id email-address secret]
-  (if-let [ownership (aggregate/exists (email-ownership repo email-address))]
+  (if-let [ownership (aggregate/exists (get-email-ownership repo email-address))]
     (if-let [current-owner-id (:account-id ownership)]
       (if (= current-owner-id account-id)
         ownership ; already owned by account-id
