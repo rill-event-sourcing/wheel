@@ -29,6 +29,9 @@
     (ok aggregate)
     (conflict aggregate)))
 
+
+;;--- TODO(Joost) - maybe - specify post-conditions that check the
+;;--- generated event types based on the ::command/events metadata
 (defmacro defcommand
   "Defines a command as a named function that takes a repo and
   properties and returns an aggregate which will be committed, or a

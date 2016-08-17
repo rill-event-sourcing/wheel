@@ -155,6 +155,12 @@
            (~handler-args
             (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))))))
 
+;;---TODO(Joost) name getter function "get-aggregate-nane" or
+;;---"fetch-aggregate-name" instead of plain "aggregate-name"
+                                        ;
+
+;;---TODO(Joost) allow for inlining event definitions in the aggregate
+;;---possibly also commands.
 (defmacro defaggregate
   "Defines an aggregate type."
   {:arglists '([name doc-string? attr-map? [properties*] pre-post-map?])}
