@@ -1,6 +1,8 @@
 (ns rill.wheel.testing
   "Tools for unit-testing ring.wheel code."
   (:require [rill.event-store.memory :refer [memory-store]]
+            [rill.wheel.saga :as saga]
+            [rill.wheel.commit-callback :refer [wrap-commit-callback]]
             [rill.wheel.bare-repository :refer [bare-repository]]))
 
 (defn sub?
@@ -65,4 +67,12 @@
 (defn ephemeral-repository
   "Return an empty repostory backed by an in-memory event-store."
   []
-  (bare-repository (memory-store)))
+  (let [r (volatile! nil)]
+    (vreset! r (-> (memory-store)
+                   (wrap-commit-callback (fn [stream-id from-version events]
+                                           (doseq [e events]
+                                             (saga/call-handlers @r e (fn [e]
+                                                                        (binding [*out* *err*]
+                                                                          (println "Exception " e)))))))
+                   (bare-repository)))))
+

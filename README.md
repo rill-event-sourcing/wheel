@@ -16,6 +16,9 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### NEXT
+  - SAGAS
+
 ### v0.1.13-SNAPSHOT
   - added `rill.wheel.wrap-new-events-callback` event store wrapper
   - small documentation typos fixed
@@ -39,7 +42,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 ### v0.1.10
   Modified command setup, allowing commands to be supplied as
   messages.
-  
+
   - (breaking) merged `rill.wheel.command` into `rill.wheel.aggregate`
     namespace
   - (breaking) `rill.wheel.command` takes aggregate type as additional
