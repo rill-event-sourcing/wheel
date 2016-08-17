@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### NEXT
+  - Allow inlining of event and command definitions in defaggregate
+  - Make `:rill.wheel.command/events` metadata optional.
+  
 ### v0.1.7
   - Documentation improvements
   - (breaking/fix) preconditions on `defevent` go on the event

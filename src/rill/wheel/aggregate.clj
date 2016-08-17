@@ -40,6 +40,70 @@
       ;; ...
       (get-user some-repository \"user@example.com\")
 
+  ### Full example of defaggregate
+
+      (defaggregate turnstile
+        \"An aggregate with docstring\"
+        [turnstile-id]
+        {:pre [(instance? java.util.UUID turnstile-id)]}
+        ((installed
+          \"A turnstile was installed\"
+          [turnstile]
+          (assoc turnstile
+                 :installed? true
+                 :locked? true
+                 :coins 0
+                 :turns 0
+                 :pushes 0))
+
+         (coin-inserted
+          \"A Coin was inserted into the turnstile\"
+          [turnstile]
+          (-> turnstile
+              (update :coins inc)
+              (assoc :locked? false)))
+
+         (arm-turned
+          \"The turnstile's arm was turned\"
+          [turnstile]
+          (-> turnstile
+              (update :pushes inc)
+              (update :turns inc)
+              (assoc :locked? true)))
+
+         (arm-pushed-ineffectively
+          \"The arm was pushed but did not move\"
+          [turnstile]
+          (-> turnstile
+              (update :pushes inc))))
+
+        ((install-turnstile
+          [repo turnstile-id]
+          (let [turnstile (get-turnstile repo turnstile-id)]
+            (if (aggregate/exists turnstile)
+              (rejection turnstile \"Already exists\")
+              (installed turnstile))))
+
+         (insert-coin
+          \"Insert coin into turnstile, will unlock\"
+          [repo turnstile-id]
+          (let [turnstile (get-turnstile repo turnstile-id)]
+            (if (:installed? turnstile)
+              (coin-inserted turnstile)
+              (rejection turnstile \"Turnstile not installed\"))))
+
+         (push-arm
+          \"Push the arm, might turn or be ineffective\"
+          {::command/events [::arm-pushed-ineffectively ::arm-turned]}
+          [repo turnstile-id]
+          (let [turnstile (get-turnstile repo turnstile-id)]
+            (cond
+              (not (:installed? turnstile))
+              (rejection turnstile \"Not installed\")
+              (:locked? turnstile)
+              (arm-pushed-ineffectively turnstile)
+              :else
+               (arm-turned turnstile))))))
 
   ### See also
 
@@ -51,6 +115,7 @@
   (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
+            [rill.wheel.command :refer [defcommand]]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns parse-pre-post]]))
 
 (defmulti apply-event
@@ -164,8 +229,6 @@
            (~handler-args
             (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))))))
 
-;;---TODO(Joost) allow for inlining event definitions in the aggregate
-;;---possibly also commands.
 (defmacro defaggregate
   "Defines an aggregate type, and aggregate-id function. The
   aggregate's id key is a map with a key for every property in
@@ -173,16 +236,20 @@
   `name`.
 
   Also defines a function `get-{name}`, which takes an additional
-  first repository argument and retrieves the aggregate."
-  {:arglists '([name
-  doc-string? attr-map? [properties*] pre-post-map?])}
+  first repository argument and retrieves the aggregate.
+
+  events? and commands? are sequences of event specs and command specs
+  and passed to `defevent` and `rill.wheel.command/defcommand`
+  respectively.
+
+
+  "
+  {:arglists '([name doc-string? attr-map? [properties*] pre-post-map? events? commands?])}
   [& args]
   (let [[n descriptor-args & body] (parse-args args)
         n                          (vary-meta n assoc :rill.wheel.aggregate/descriptor-fn true)
         [prepost body]             (parse-pre-post body)
         repo-arg                   `repository#]
-    (when (seq body)
-      (throw (IllegalArgumentException. "defaggregate takes only pre-post-map as after properties vector.")))
     `(do (defn ~n
            ~(vec descriptor-args)
            ~@(when prepost
@@ -194,7 +261,14 @@
          (defn ~(symbol (str "get-" (name n)))
            ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
            ~(into [repo-arg] descriptor-args)
-           (repo/update ~repo-arg (apply ~n ~descriptor-args))))))
+           (repo/update ~repo-arg (apply ~n ~descriptor-args)))
+
+         ~@(map (fn [event]
+                  `(defevent ~@event))
+                (first body))
+         ~@(map (fn [command]
+                  `(defcommand ~@command))
+                (second body)))))
 
 (defn type
   "Return the type of this aggregate"

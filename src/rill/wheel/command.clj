@@ -1,6 +1,5 @@
 (ns rill.wheel.command
-  (:require [rill.wheel.aggregate :as aggregate]
-            [rill.wheel.repository :as repo]
+  (:require [rill.wheel.repository :as repo]
             [rill.wheel.macro-utils :refer [parse-args]]))
 
 (defn rejection? [result]
@@ -13,7 +12,7 @@
   (= (::status result) :conflict))
 
 (defn ok [aggregate]
-  {::status :ok ::events (::aggregate/new-events aggregate) ::aggregate aggregate})
+  {::status :ok ::events (:rill.wheel.aggregate/new-events aggregate) ::aggregate aggregate})
 
 (defn rejection
   [aggregate reason]
@@ -39,7 +38,7 @@
 
   Returns a `rejection`, an `ok` result or a `conflict`
 
-  The metadata of the command MUST contain a :rill.wheel.events key,
+  The metadata of the command may contain a :rill.wheel.events key,
   which will specify the types of the events that may be generated. As
   a convenience, the corresponding event functions are `declare`d
   automatically so the `defevent` statements can be written after the
@@ -59,11 +58,10 @@
   [& args]
   (let [[n [repository & properties :as fn-args] & body] (parse-args args)
         n                                                (vary-meta n assoc :rill.wheel.command/command-fn true)]
-    `(do ~(if-let [event-keys (::events (meta n))]
+    `(do ~(when-let [event-keys (::events (meta n))]
             `(declare ~@(map (fn [k]
                                (symbol (subs (str k) 1)))
-                             event-keys))
-            (throw (IllegalArgumentException. "command has no events specified")))
+                             event-keys)))
 
          (defn ~n ~(vec fn-args)
            (let [result# (do ~@body)]
