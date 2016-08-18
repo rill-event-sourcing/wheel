@@ -99,7 +99,6 @@
   When the command is acceptable, it should apply the necessary events
   to the aggregate and return the result (the updated aggregate).
   "
-  {:doc/format :markdown}
   (:require [rill.wheel.repository :as repo]
             [rill.wheel.macro-utils :refer [parse-args]]))
 
@@ -125,7 +124,6 @@
 
 (defn uncommitted?
   "`aggregate` has events applied that can be committed."
-  {:doc/format :markdown}
   [aggregate]
   (boolean (seq (:rill.wheel.aggregate/new-events aggregate))))
 
@@ -134,7 +132,6 @@
   `rejection` nothing is committed and the rejection is returned. If the
   result is an aggregate it is committed to the repository. If that
   succeeds an `ok` is returned. Otherwise a `conflict` is returned."
-  {:doc/format :markdown}
   [aggregate-or-rejection]
   (cond
     (rejection? aggregate-or-rejection)
@@ -168,8 +165,7 @@
             (answered-incorrectly question user-id answer))))
    
   "
-  {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])
-   :doc/format :markdown}
+  {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])}
   [& args]
   (let [[n fn-args & body] (parse-args args)
         n                  (vary-meta n assoc :rill.wheel.command/command-fn true)]

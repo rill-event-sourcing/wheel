@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :plugins [[lein-codox "0.9.6"]]
+  :codox {:metadata {:doc/format :markdown}}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.cache "0.6.5"]
                  [rill-event-sourcing/rill.event_store "0.2.2"]

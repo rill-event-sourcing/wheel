@@ -43,7 +43,6 @@
       (not (sub? (list nil 2)
                  [:1 :2 :3]))
   "
-  {:doc/format :markdown}
   [sub x]
   (cond (nil? sub)
         true

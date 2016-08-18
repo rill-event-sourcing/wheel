@@ -14,6 +14,10 @@
   (update [repo aggregate]
     (reduce aggregate/apply-stored-event aggregate (event-store/retrieve-events-since event-store (::aggregate/id aggregate) (::aggregate/version aggregate) 0))))
 
+;; leave these out of the documentation
+(alter-meta! #'->BareRepository assoc :private true)
+(alter-meta! #'map->BareRepository assoc :private true)
+
 (defn bare-repository
   "A bare-bones repository that stores its events in a rill
   event-store"

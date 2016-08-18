@@ -1,4 +1,6 @@
-(ns rill.wheel.macro-utils)
+(ns ^:no-doc rill.wheel.macro-utils
+  "A collection of helper functions used by the rill/wheel def*
+  macros")
 
 (defn parse-doc-string
   "provide defn-style doc-string suppport for def* macros"

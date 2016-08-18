@@ -110,8 +110,6 @@
   - `rill.wheel.command`
   - `rill.event-store`
   "
-  {:doc/format :markdown}
-
   (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
