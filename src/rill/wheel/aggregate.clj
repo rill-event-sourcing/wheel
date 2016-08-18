@@ -34,9 +34,9 @@
 
   ### Store and retrieve aggregates in a repository
 
-      (repository/commit some-repository
-            (-> (user \"user@example.com)
-                (registered)))
+      (-> (get-user repo \"user@example.com)
+          (registered)
+          (command/commit!))
       ;; ...
       (get-user some-repository \"user@example.com\")
 
