@@ -16,7 +16,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### NEXT
+### v0.1.9
   - Improve & expand documentation
 
 ### v0.1.8
