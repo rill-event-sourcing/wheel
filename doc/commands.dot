@@ -1,15 +1,19 @@
 digraph commands {
-        layout=circo
+        layout="circo";
         edge [labelfloat=true fontname="sans-serif"];
         node [fontname="sans-serif"];
-        
-        EventStream [shape=box]
-        FetchAggregate [label="Fetch\nAggregate"]
-        EventStream -> FetchAggregate [label="Events"]
-        FetchAggregate -> Execute
-        Execute -> Execute [label="Generate Events"]
-        Execute
-        Execute -> Commit
-        Commit [label="Commit\nAggregate"]
-        Commit -> EventStream [label="Events"]
+        Commands -> Events [label="Generate"]
+        Events -> Aggregates [label="Apply to"]
+        Events -> QueryModel [label="Apply to"]
+        QueryModel -> Views [label="Update"]
+        QueryModel [style=filled fillcolor=palegreen1 label="Query model"]
+        Views [style=filled fillcolor=palegreen1]
+        User [style=filled fillcolor=lavender]
+        User -> Views [label="Browses" style=dotted]
+        User -> Commands [label="Orders" style=dotted]
+        Aggregates -> Commands [label="Take"]
+
+        Commands [style=filled fillcolor=pink]
+        Aggregates [style=filled fillcolor=pink]
+        Events [style=wedged fillcolor="palegreen1:pink"]
 }
