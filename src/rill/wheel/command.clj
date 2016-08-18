@@ -23,20 +23,25 @@
   {::status :conflict ::aggregate aggregate})
 
 (defn commit!
-  [aggregate repo]
-  (if (repo/commit! repo aggregate)
-    (ok aggregate)
-    (conflict aggregate)))
-
+  "Commit the result of a command execution. If the command returned a
+  `rejection` nothing is committed and the rejection is returned. If the
+  result is an aggregate it is committed to the repository. If that
+  succeeds an `ok` is returned. Otherwise a `conflict` is returned."
+  [aggregate-or-rejection]
+  (cond
+    (rejection? aggregate-or-rejection)
+    aggregate-or-rejection
+    (repo/commit! (:rill.wheel.aggregate/repository aggregate-or-rejection) aggregate-or-rejection)
+    (ok aggregate-or-rejection)
+    :else
+    (conflict aggregate-or-rejection)))
 
 ;;--- TODO(Joost) - maybe - specify post-conditions that check the
 ;;--- generated event types based on the ::command/events metadata
 (defmacro defcommand
-  "Defines a command as a named function that takes a repo and
-  properties and returns an aggregate which will be committed, or a
-  rejection that will be returned.
-
-  Returns a `rejection`, an `ok` result or a `conflict`
+  "Defines a command as a named function that takes any arguments and
+  returns an `aggregate` or `rejection` that can be passed to
+  `commit!`.
 
   The metadata of the command may contain a :rill.wheel.events key,
   which will specify the types of the events that may be generated. As
@@ -56,15 +61,12 @@
   "
   {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])}
   [& args]
-  (let [[n [repository & properties :as fn-args] & body] (parse-args args)
-        n                                                (vary-meta n assoc :rill.wheel.command/command-fn true)]
+  (let [[n fn-args & body] (parse-args args)
+        n                  (vary-meta n assoc :rill.wheel.command/command-fn true)]
     `(do ~(when-let [event-keys (::events (meta n))]
             `(declare ~@(map (fn [k]
                                (symbol (subs (str k) 1)))
                              event-keys)))
 
          (defn ~n ~(vec fn-args)
-           (let [result# (do ~@body)]
-             (if (rejection? result#)
-               result#
-               (commit! result# ~repository)))))))
+           ~@body))))

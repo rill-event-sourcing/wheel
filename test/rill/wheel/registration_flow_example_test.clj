@@ -4,7 +4,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [rill.wheel
              [aggregate :as aggregate :refer [defaggregate defevent]]
-             [command :as command :refer [defcommand]]
+             [command :as command :refer [defcommand commit!]]
              [repository :as repo]
              [testing :refer [ephemeral-repository sub?]]]))
 
@@ -160,8 +160,10 @@ environment this might be called by a background worker."
   whom have a registered email address."
   []
   (doto (ephemeral-repository)
-    (register-account :first-user "User Number One")
-    (register-account :second-user "User Number Two")))
+    (-> (register-account :first-user "User Number One")
+        commit!)
+    (-> (register-account :second-user "User Number Two")
+        commit!)))
 
 (defn secret-from-claim-result
   "Get secret token from result of executing `claim-email-address`"
@@ -194,12 +196,14 @@ environment this might be called by a background worker."
     (let [repo   (test-repo-with-two-users)
           secret (-> repo
                      (claim-email-address :first-user "one@example.com")
+                     commit!
                      secret-from-claim-result)]
       (is secret)
       (is (sub? {::command/status :ok
                  ::command/events [{:rill.message/type ::email-address-taken
                                     :account-id        :first-user}]}
-                (confirm-email-address repo :first-user "one@example.com" secret))))))
+                (-> (confirm-email-address repo :first-user "one@example.com" secret)
+                    commit!))))))
 
 ;;;;
 ;;;; Show that some of the unhappy flows are implemented
@@ -212,9 +216,11 @@ environment this might be called by a background worker."
     (let [repo    (test-repo-with-two-users)
           secret1 (-> repo
                       (claim-email-address :first-user "example@example.com")
+                      commit!
                       secret-from-claim-result)
           secret2 (-> repo
                       (claim-email-address :second-user "example@example.com")
+                      commit!
                       secret-from-claim-result)]
       (is secret1 "secret generated for claim 1")
       (is secret2 "secret generated for claim 2")
@@ -223,10 +229,12 @@ environment this might be called by a background worker."
       (is (sub? {::command/status :ok
                  ::command/events [{:rill.message/type ::email-address-taken
                                     :account-id        :second-user}]}
-                (confirm-email-address repo :second-user "example@example.com" secret2))
+                (-> (confirm-email-address repo :second-user "example@example.com" secret2)
+                    commit!))
           "first confirmation succeeds")
 
-      (is (command/rejection? (confirm-email-address repo :first-user "example@example.com" secret1))
+      (is (command/rejection? (-> (confirm-email-address repo :first-user "example@example.com" secret1)
+                                  commit!))
           "second confirmation is rejected")))
 
   (testing "User attempting to register already taken address"
@@ -235,35 +243,44 @@ environment this might be called by a background worker."
           ;; complete registering the address with :first-user
           secret (-> repo
                      (claim-email-address :first-user "example@example.com")
+                     commit!
                      secret-from-claim-result)]
       (is secret "secret generated for first claim")
       (is (sub? {::command/status :ok
                  ::command/events [{:rill.message/type ::email-address-taken
                                     :account-id        :first-user}]}
-                (confirm-email-address repo :first-user "example@example.com" secret))
+                (-> (confirm-email-address repo :first-user "example@example.com" secret)
+                    commit!))
           "first confirmation succeeds")
       ;; email address is now owned by :first-user
-      (is (command/rejection? (claim-email-address repo :second-user "example@example.com"))
+      (is (command/rejection? (-> (claim-email-address repo :second-user "example@example.com")
+                                  commit!))
           "second claim is rejected immediately")))
 
   (testing "Malicious attempt to register address with non-existing user"
     (let [repo (ephemeral-repository)]
-      (is (command/rejection? (claim-email-address repo :some-other-user "some.address@example.com")))))
+      (is (command/rejection? (-> (claim-email-address repo :some-other-user "some.address@example.com")
+                                  commit!)))))
 
   (testing "Malicious attempt to register address with incorrect token"
     (let [repo   (test-repo-with-two-users)
           secret (-> repo
                      (claim-email-address :first-user "one@example.com")
+                     commit!
                      secret-from-claim-result)]
-      (is (command/rejection? (confirm-email-address repo :first-user "one@example.com" (random-secret)))
+      (is (command/rejection? (-> (confirm-email-address repo :first-user "one@example.com" (random-secret))
+                                  commit!))
           "Guessing a secret will not work")))
 
   (testing "User is too late to confirm registration"
     (let [repo   (test-repo-with-two-users)
           secret (-> repo
                      (claim-email-address :first-user "one@example.com")
+                     commit!
                      secret-from-claim-result)]
       (is secret "Secret received")
-      (is (command/ok? (expire-email-address-confirmation repo :first-user "one@example.com" secret))
+      (is (command/ok? (-> (expire-email-address-confirmation repo :first-user "one@example.com" secret)
+                           commit!))
           "Timeout committed")
-      (is (command/rejection? (confirm-email-address repo :first-user "one@example.com" secret))))))
+      (is (command/rejection? (-> (confirm-email-address repo :first-user "one@example.com" secret)
+                                  commit!))))))

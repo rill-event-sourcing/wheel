@@ -1,9 +1,9 @@
 (ns rill.wheel.command-test
   (:require [clojure.test :refer [deftest is]]
             [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent]]
-            [rill.wheel.command :as command :refer [defcommand ok? rejection]]
+            [rill.wheel.command :as command :refer [defcommand ok? rejection commit!]]
             [rill.wheel.repository :as repo]
-            [rill.wheel.testing :refer [ephemeral-repository]]))
+            [rill.wheel.testing :refer [ephemeral-repository sub?]]))
 
 (defaggregate user
   [email])
@@ -11,12 +11,11 @@
 (defcommand create-or-fail
   "Create user if none exists with the given email address."
   {::command/events [::created]}
-  [repo email full-name]
-  (let [user (repo/update repo (user email))]
-    (if-not (aggregate/new? user)
-      (rejection user (format "User with mail '%s' already exists" email))
-      (-> user
-          (created full-name)))))
+  [user full-name]
+  (if-not (aggregate/new? user)
+    (rejection user "User already exists")
+    (-> user
+        (created full-name))))
 
 (defevent created
   "A new user was created"
@@ -25,11 +24,10 @@
 
 (defcommand rename
   {::command/events [::name-changed]}
-  [repo email new-name]
-  (let [user (repo/update repo (user email))]
-    (if-not (aggregate/new? user)
-      (name-changed user new-name)
-      (rejection user (format "No user with mail '%s' exists" email)))))
+  [user new-name]
+  (if-not (aggregate/new? user)
+    (name-changed user new-name)
+    (rejection user "No such user with exists")))
 
 (defevent name-changed
   "user's `full-name` changed to `new-name`"
@@ -78,11 +76,13 @@
 
 (deftest aggregate-creation-test
   (let [repo (ephemeral-repository)]
-    (is (ok? (create-or-fail repo "user@example.com" "Full Name")))
-    (is (= {::aggregate/id      {:email           "user@example.com"
-                                 ::aggregate/type ::user}
-            ::aggregate/type    ::user
-            ::aggregate/version 0
-            :full-name          "Full Name"
-            :email              "user@example.com"}
-           (repo/update repo (user "user@example.com"))))))
+    (is (ok? (-> (get-user repo "user@example.com")
+                 (create-or-fail "Full Name")
+                 commit!)))
+    (is (sub? {::aggregate/id      {:email           "user@example.com"
+                                    ::aggregate/type ::user}
+               ::aggregate/type    ::user
+               ::aggregate/version 0
+               :full-name          "Full Name"
+               :email              "user@example.com"}
+              (get-user repo "user@example.com")))))

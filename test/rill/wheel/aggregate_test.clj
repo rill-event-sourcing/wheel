@@ -3,7 +3,7 @@
             [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent]]
             [rill.wheel.testing :refer [ephemeral-repository sub?]]
             [rill.message :as message]
-            [rill.wheel.command :as command :refer [rejection rejection? ok?]]))
+            [rill.wheel.command :as command :refer [rejection rejection? ok? commit!]]))
 
 (defaggregate aggregate1
   "Some documentation"
@@ -108,56 +108,63 @@
         (update :pushes inc))))
 
   ((install-turnstile
-    [repo turnstile-id]
-    (let [turnstile (get-turnstile repo turnstile-id)]
-      (if (aggregate/exists turnstile)
-        (rejection turnstile "Already exists")
-        (installed turnstile))))
+    [turnstile]
+    (if (aggregate/exists turnstile)
+      (rejection turnstile "Already exists")
+      (installed turnstile)))
 
    (insert-coin
     "Insert coin into turnstile, will unlock"
-    [repo turnstile-id]
-    (let [turnstile (get-turnstile repo turnstile-id)]
-      (if (:installed? turnstile)
-        (coin-inserted turnstile)
-        (rejection turnstile "Turnstile not installed"))))
+    [turnstile]
+    (if (:installed? turnstile)
+      (coin-inserted turnstile)
+      (rejection turnstile "Turnstile not installed")))
 
    (push-arm
     "Push the arm, might turn or be ineffective"
     {::command/events [::arm-pushed-ineffectively ::arm-turned]}
-    [repo turnstile-id]
-    (let [turnstile (get-turnstile repo turnstile-id)]
-      (cond
-        (not (:installed? turnstile))
-        (rejection turnstile "Not installed")
-        (:locked? turnstile)
-        (arm-pushed-ineffectively turnstile)
-        :else
-        (arm-turned turnstile))))))
+    [turnstile]
+    (cond
+      (not (:installed? turnstile))
+      (rejection turnstile "Not installed")
+      (:locked? turnstile)
+      (arm-pushed-ineffectively turnstile)
+      :else
+      (arm-turned turnstile)))))
 
 (deftest test-extened-defaggregate
   (let [repo (ephemeral-repository)
         id   (java.util.UUID/randomUUID)]
-    (is (rejection? (push-arm repo id)))
+    (is (rejection? (-> (get-turnstile repo id)
+                        (push-arm)
+                        commit!)))
 
     (is (sub? {::command/status :ok
                ::command/events [{::message/type ::installed}]}
-              (install-turnstile repo id)))
+              (-> (get-turnstile repo id)
+                  (install-turnstile)
+                  commit!)))
 
     (is (sub? {::command/status :ok
                ::command/events [{::message/type ::arm-pushed-ineffectively}]}
-              (push-arm repo id)))
+              (-> (get-turnstile repo id)
+                  (push-arm)
+                  commit!)))
 
     (is (sub? {::command/status :ok
                ::command/events [{::message/type ::coin-inserted}]}
-              (insert-coin repo id)))
+              (-> (get-turnstile repo id)
+                  (insert-coin)
+                  commit!)))
 
     (is (sub? {::command/status :ok
                ::command/events [{::message/type ::arm-turned}]}
-              (push-arm repo id)))
+              (-> (get-turnstile repo id)
+                  (push-arm)
+                  commit!)))
 
     (is (sub? {::command/status :ok
                ::command/events [{::message/type ::arm-pushed-ineffectively}]}
-              (push-arm repo id)))))
-
-
+              (-> (get-turnstile repo id)
+                  (push-arm)
+                  commit!)))))

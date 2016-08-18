@@ -261,7 +261,8 @@
          (defn ~(symbol (str "get-" (name n)))
            ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
            ~(into [repo-arg] descriptor-args)
-           (repo/update ~repo-arg (apply ~n ~descriptor-args)))
+           (-> (repo/update ~repo-arg (apply ~n ~descriptor-args))
+               (assoc :rill.wheel.aggregate/repository ~repo-arg)))
 
          ~@(map (fn [event]
                   `(defevent ~@event))
