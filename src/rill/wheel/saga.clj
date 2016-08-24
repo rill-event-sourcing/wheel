@@ -37,6 +37,7 @@
   "
   {:doc/format :markdown}
   (:require [rill.message :as message]
+            [rill.wheel.command :as command :refer [ok? commit!]]
             [rill.wheel.aggregate :refer [defevent defaggregate apply-event]]
             [rill.wheel.macro-utils :refer [parse-args parse-pre-post keyword-in-current-ns]]))
 
@@ -72,18 +73,21 @@
   [saga event]
   (contains? (:handled saga) (select-keys event [::message/number ::message/stream-id])))
 
-#_(defn install-aggregate-handlers
-    [saga-name transitions]
-    (doseq [event-type (vals transitions)]
-      (add-handler event-type (handler-name saga-name)
-                   (fn [repo event]
-                     (let [saga ....]
-                       ...
-                       )))))
+(defn install-aggregate-handlers
+  [saga-name get-instance props transitions]
+  (doseq [event-type (vals transitions)]
+    (add-handler event-type (handler-name saga-name)
+                 (fn [repo event]
+                   (let [result (-> (apply get-instance repo (map event props))
+                                    (apply-event event)
+                                    (commit!))]
+                     (when (ok? result)
+                       ;;; TODO...
+                       ))))))
 
 (defmacro defsaga
   "Sagas receive events and generate commands."
-  {:arglists    '([name doc-string? attr-map? [properties*] transitions commands])}
+  {:arglists '([name doc-string? attr-map? [properties*] transitions commands])}
   [& args]
   (let [[n descriptor-args & body] (parse-args args)
         n                          (vary-meta n assoc ::descriptor-fn true)
@@ -94,8 +98,8 @@
         (throw (IllegalArgumentException. "defsaga takes no body or pre-post-map after properties vector")))
 
     `(do (defaggregate ~n ~descriptor-args)
-
-
+         (install-aggregate-handlers ~n ~(symbol (str "get-" (name n))) ~descriptor-args ~transitions)
+q
 
 
          #_(defmethod apply-event ~(handler-name n)

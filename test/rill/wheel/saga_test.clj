@@ -49,9 +49,12 @@
                                     ::arm-pushed    :locked}}}
   [turnstile-id]
   ;; entry actions
-  (locked [repo]
-          (-> (turnstile repo turnstile-id)
-              (turn))))
+  ((locked
+    [repo]
+    (-> (turnstile repo turnstile-id)
+        (turn)))))
+
+
 
 (deftest test-turnstile
   (let [repo (ephemeral-repository)]
