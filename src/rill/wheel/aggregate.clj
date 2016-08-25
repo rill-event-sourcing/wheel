@@ -328,49 +328,7 @@
            (~handler-args
             (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))))))
 
-(defmacro defaggregate
-  "Defines an aggregate type, and aggregate-id function. The
-  aggregate's id key is a map with a key for every property in
-  `properties*`, plus the aggregate type, a qualified keyword from
-  `name`.
 
-  Also defines a function `get-{name}`, which takes an additional
-  first repository argument and retrieves the aggregate.
-
-  events? and commands? are sequences of event specs and command specs
-  and passed to `defevent` and `rill.wheel.aggregate/defcommand`
-  respectively.
-
-
-  "
-  {:arglists '([name doc-string? attr-map? [properties*] pre-post-map? events? commands?])}
-  [& args]
-  (let [[n descriptor-args & body] (parse-args args)
-        n                          (vary-meta n assoc
-                                              ::descriptor-fn true
-                                              ::properties (mapv keyword descriptor-args))
-        [prepost body]             (parse-pre-post body)
-        repo-arg                   `repository#]
-    `(do (defn ~n
-           ~(vec descriptor-args)
-           ~@(when prepost
-               [prepost])
-           (empty (sorted-map ::type ~(keyword-in-current-ns n)
-                              ~@(mapcat (fn [k]
-                                          [(keyword k) k])
-                                        descriptor-args))))
-         (defn ~(symbol (str "get-" (name n)))
-           ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
-           ~(into [repo-arg] descriptor-args)
-           (-> (repo/update ~repo-arg (apply ~n ~descriptor-args))
-               (assoc :rill.wheel.aggregate/repository ~repo-arg)))
-
-         ~@(map (fn [event]
-                  `(defevent ~@event))
-                (first body))
-         ~@(map (fn [command]
-                  `(defcommand ~@command))
-                (second body)))))
 
 (defn type
   "Return the type of this aggregate"
@@ -388,7 +346,7 @@
 (defn repository
   "Return the repository of `aggregate`."
   [aggregate]
-  {:pre [(aggregate? aggregate)]
+  {:pre  [(aggregate? aggregate)]
    :post [%]}
   (::repository aggregate))
 
@@ -433,50 +391,28 @@
     :else
     (conflict aggregate-or-rejection)))
 
-
-;;--- TODO(Joost) - maybe - specify post-conditions that check the
-;;--- generated event types based on the ::aggregate/events metadata
-(defmacro defcommand
-  "Defines a command as a named function that takes any arguments and
-  returns an `aggregate` or `rejection` that can be passed to
-  `commit!`.
-
-  The metadata of the command may contain a
-  `:rill.wheel.aggregate/events` key, which will specify the types of
-  the events that may be generated. As a convenience, the
-  corresponding event functions are `declare`d automatically so the
-  `defevent` statements can be written after the command. This usually
-  reads a bit nicer.
-
-       (defcommand answer-question
-         \"Try to answer a question\"
-         {::aggregate/events [::answered-correctly ::answered-incorrectly]}
-         [repo question-id user-id answer]
-         (let [question (question repo question-id)]
-           (if (some-check question answer)
-            (answered-correctly question user-id answer)
-            (answered-incorrectly question user-id answer))))
-
-  "
-  {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])}
-  [& args]
-  (let [[n fn-args & body] (parse-args args)
-        n                  (vary-meta n assoc :rill.wheel.aggregate/command-fn true)]
-    `(do ~(when-let [event-keys (::events (meta n))]
-            `(declare ~@(map (fn [k]
-                               (symbol (subs (str k) 1)))
-                             event-keys)))
-
-         (defn ~n ~(vec fn-args)
-           ~@body))))
-
 (defmulti fetch-aggregate
   "Given a command and repository, fetch the target aggregate"
   (fn [repo command]
-    (::aggregate command)))
+    (:rill.message/type command)))
 
+(defmulti apply-command
+  "Given a command and aggregate, apply the command to the
+  aggregate. Should return an updated aggregate or a rejection"
+  (fn [repo command]
+    (:rill.message/type command)))
 
-(defmacro defcommand-new
+(defn transact!
+  "Run and commit the given command against the repository"
+  [repo command]
+  (-> (fetch-aggregate repo command)
+      (apply-command command)
+      (commit!)))
+
+;;;;----TODO(Joost) Insert pre-post checks at the right places, update
+;;;;----documentation
+
+(defmacro defcommand
   "Defines a command as a named function that takes any arguments and
   returns an `aggregate` or `rejection` that can be passed to
   `commit!`.
@@ -500,24 +436,93 @@
 
   "
   {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])}
-  [& args]
-  (let [[n [aggregate & props] & body] (parse-args args)
-        n                  (vary-meta n assoc :rill.wheel.aggregate/command-fn true)
-        m (meta n)
-        t (or (::aggregate m) (throw (IllegalArgumentException. "defcommand-new needs rill.wheel.aggregate/aggregate metadata")))
-        fetch-props nil #_(type-properties (keyword-in-current-ns n))]
-    (when-not (vector? fetch-props)
-      (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
+  [n t & args]
+  (when-not (or (symbol? t) (keyword? t))
+    (throw (IllegalArgumentException. "Second argument to defcommand should be the type of the aggregate.")))
+  (let [[n [aggregate & props] & body] (parse-args (cons n args))
+        n                              (vary-meta n assoc
+                                                  ::command-fn true
+                                                  ::aggregate t)
+        m                              (meta n)
+        fetch-props                    (type-properties t)
+        _                              (when-not (vector? fetch-props)
+                                         (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
+        fetch-props                    (mapv #(-> % name symbol) fetch-props)
+        getter                         (symbol (namespace t) (str "get-" (name t)))]
     `(do ~(when-let [event-keys (::events m)]
             `(declare ~@(map (fn [k]
                                (symbol (subs (str k) 1)))
                              event-keys)))
 
-         
          (defmethod apply-command ~(keyword-in-current-ns n)
-           [~aggregate {:keys (vec props)}]
+           [~aggregate {:keys ~(vec props)}]
            ~@body)
 
          (defmethod fetch-aggregate ~(keyword-in-current-ns n)
-           [repository# {:keys ~fetch-props}]))))
+           [repository# {:keys ~fetch-props}]
+           (~getter repository# ~@fetch-props))
 
+         (defn ~(symbol (str n "-command"))
+           ~(format "Construct a %s command message" (name n))
+           ~(into fetch-props props)
+           ~(into {:rill.message/type (keyword-in-current-ns n)}
+                  (map (fn [k]
+                         [(keyword k) k])
+                       (into fetch-props props))))
+         (defn ~n
+           ~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate))
+           ~(into [aggregate] props)
+           (apply-command ~aggregate (~(symbol (str n "-command"))
+                                      ~@(map (fn [p]
+                                                 `(get ~aggregate ~(keyword p)))
+                                               fetch-props)
+                                      ~@props)))
+
+         (defn ~(symbol (str (name n) "!"))
+           ~(format "Apply command %s to repository and commit" (name n))
+           [repository# ~@fetch-props ~@props]
+           (transact! repository# (~(symbol (str (name n) "-command")) ~@fetch-props ~@props))))))
+
+(defmacro defaggregate
+  "Defines an aggregate type, and aggregate-id function. The
+  aggregate's id key is a map with a key for every property in
+  `properties*`, plus the aggregate type, a qualified keyword from
+  `name`.
+
+  Also defines a function `get-{name}`, which takes an additional
+  first repository argument and retrieves the aggregate.
+
+  events? and commands? are sequences of event specs and command specs
+  and passed to `defevent` and `rill.wheel.aggregate/defcommand`
+  respectively.
+
+
+  "
+  {:arglists '([name doc-string? attr-map? [properties*] pre-post-map? events? commands?])}
+  [& args]
+  (let [[n descriptor-args & body] (parse-args args)
+        n                          (vary-meta n assoc
+                                              ::descriptor-fn true
+                                              ::properties (mapv keyword descriptor-args))
+        [prepost body]             (parse-pre-post body)
+        repo-arg                   `repository#]
+    `(do (defn ~n
+           ~(vec descriptor-args)
+           ~@(when prepost
+               [prepost])
+           (empty (sorted-map ::type ~(keyword-in-current-ns n)
+                              ~@(mapcat (fn [k]
+                                          [(keyword k) k])
+                                        descriptor-args))))
+         (defn ~(symbol (str "get-" (name n)))
+           ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
+           ~(into [repo-arg] descriptor-args)
+           (-> (repo/update ~repo-arg (apply ~n ~descriptor-args))
+               (assoc :rill.wheel.aggregate/repository ~repo-arg)))
+
+         ~@(map (fn [event]
+                  `(defevent ~@event))
+                (first body))
+         ~@(map (fn [command]
+                  `(defcommand ~(first command) ~(keyword-in-current-ns n) ~@(rest command)))
+                (second body)))))

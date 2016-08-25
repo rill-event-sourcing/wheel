@@ -1,6 +1,6 @@
 (ns rill.wheel.aggregate-test
   (:require [clojure.test :refer [deftest testing is]]
-            [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent defcommand rejection rejection? ok? commit!]]
+            [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent defcommand rejection rejection? ok? commit! transact!]]
             [rill.wheel.testing :refer [ephemeral-repository sub?]]
             [rill.message :as message]))
 
@@ -177,7 +177,7 @@
 (defaggregate user
   [email])
 
-(defcommand create-or-fail
+(defcommand create-or-fail ::user
   "Create user if none exists with the given email address."
   {::aggregate/events [::created]}
   [user full-name]
@@ -191,7 +191,7 @@
   [user full-name]
   (assoc user :full-name full-name))
 
-(defcommand rename
+(defcommand rename ::user
   {::aggregate/events [::name-changed]}
   [user new-name]
   (if-not (aggregate/new? user)
@@ -255,3 +255,23 @@
                :full-name          "Full Name"
                :email              "user@example.com"}
               (get-user repo "user@example.com")))))
+
+
+
+(defcommand rename-alt-impl ::user
+  "example of new construct"
+  [user new-name]
+  (if (aggregate/exists user)
+    (name-changed user new-name)
+    (rejection user "User does not exist")))
+
+(deftest test-defcommand-msg
+  (let [repo (ephemeral-repository)]
+    (is (ok? (-> (get-user repo "user@example.com")
+                 (create-or-fail "Full Name")
+                 commit!)))
+    (is (ok? (transact! repo (rename-alt-impl-command "user@example.com" "Other Name"))))
+
+    (is (ok? (rename-alt-impl! repo "user@example.com" "Other Name")))))
+
+
