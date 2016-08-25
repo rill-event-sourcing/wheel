@@ -367,7 +367,12 @@
   (= (::status result) :conflict))
 
 (defn ok [aggregate]
-  {::status :ok ::events (:rill.wheel.aggregate/new-events aggregate) ::aggregate aggregate})
+  (let [events (::new-events aggregate)]
+    {::status :ok
+     ::events events
+     ::aggregate (-> aggregate
+                     (update ::version + (count events))
+                     (assoc ::new-events []))}))
 
 (defn rejection
   [aggregate reason]
