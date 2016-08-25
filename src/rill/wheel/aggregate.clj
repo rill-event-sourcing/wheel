@@ -169,21 +169,25 @@
 
   ## Defining commands
 
+       (defaggregate x                                 ; 1.
+         [id])
 
-       (defevent x-happened                            ; 1.
+       (defevent x-happened                            ; 2.
           \"X happened to obj\"
           [obj arg1]
           (assoc obj :a arg1))
 
-       (defcommand do-x                                ; 2.
+       (defcommand do-x ::x                            ; 3.
           \"Make X happen to obj\"
           [obj arg1]
-          (if (= (:a obj) arg1))                       ; 3
+          (if (= (:a obj) arg1))                       ; 4.
               (rejection obj \"Arg already applied\")
-              (x-happened obj)))                       ; 4.
+              (x-happened obj)))                       ; 5.
 
 
-  ### 1. Define events to apply
+  ### 1. Define the aggregate type
+
+  ### 2. Define events to apply
 
   Commands can only affect aggregates by applying events to them. Here
   we define an event with `defevent`. When the `x-happened` event is
@@ -192,18 +196,19 @@
   It's idiomatic to give events a past-tense name, to indicate that
   the event happened and is not .
 
-  ### 2. Define command
+  ### 3. Define command
 
   Commands are defined by calling `defcommand`, specifying a name,
-  optional docstring, argument vector and a command body.
+  aggregate type, optional docstring, argument vector and a command
+  body.
 
-  ### 3. Test state and reject command
+  ### 4. Test state and reject command
 
   Aggregate state is typically only used to keep track of information
   that must be used to validate commands. When a command must not
   proceed, the command body can return a `rejection` with a reason.
 
-  ### 4. Apply new event(s)
+  ### 5. Apply new event(s)
 
   When the command is acceptable, it should apply the necessary events
   to the aggregate and return the result (the updated aggregate).
