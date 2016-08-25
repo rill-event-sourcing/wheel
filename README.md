@@ -16,9 +16,15 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### v0.1.20
+### v0.1.20-SNAPSHOT
+  Modified command setup, allowing commands to be supplied as
+  messages.
+  
   - (breaking) merged `rill.wheel.command` into `rill.wheel.aggregate`
     namespace
+  - (breaking) `rill.wheel.command` takes aggregate type as additional
+    argument.
+  - (breaking) first argument to commands now *must* be an aggregate.
 
 ### v0.1.9
   - Improve & expand documentation
