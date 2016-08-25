@@ -3,8 +3,7 @@
   registration flow with email validation."
   (:require [clojure.test :refer [deftest is testing]]
             [rill.wheel
-             [aggregate :as aggregate :refer [defaggregate defevent]]
-             [command :as command :refer [defcommand commit!]]
+             [aggregate :as aggregate :refer [defaggregate defevent defcommand commit!]]
              [repository :as repo]
              [testing :refer [ephemeral-repository sub?]]]))
 
@@ -27,11 +26,11 @@
 (defcommand register-account
   "Register an account with the given name. The account-id is
   generated somewhere else and should be unique."
-  {::command/events [::account-registered]}
+  {::aggregate/events [::account-registered]}
   [repo account-id full-name]
   (let [account (get-account repo account-id)]
     (if (aggregate/exists account)
-      (command/rejection account "Account with id already exists")
+      (aggregate/rejection account "Account with id already exists")
       (account-registered account full-name))))
 
 (defevent account-registered
@@ -74,15 +73,15 @@ accounts."
 This will fail if email adress is already taken by some other
 account. Otherwise the email address needs to be confirmed within some
 amount of time."
-  {::command/events [::email-address-claimed]}
+  {::aggregate/events [::email-address-claimed]}
   [repo claiming-account-id email-address]
   (let [account (get-account repo claiming-account-id)]
     (if (aggregate/exists account)
       (let [{current-owner :account-id :as ownership} (get-email-ownership repo email-address)]
         (if (and current-owner (not= claiming-account-id (:account-id ownership)))
-          (command/rejection ownership "Email address is already taken")
+          (aggregate/rejection ownership "Email address is already taken")
           (email-address-claimed ownership claiming-account-id (random-secret))))
-      (command/rejection account "No such account"))))
+      (aggregate/rejection account "No such account"))))
 
 (defevent email-address-claimed
   "There is a provisional claim on this email address that can be
@@ -105,12 +104,12 @@ some reasonable amount of time their confirmation attempt will expire.
 
 This command expires an email confirmation attempt. In a production
 environment this might be called by a background worker."
-  {::command/events [::email-address-confirmation-expired]}
+  {::aggregate/events [::email-address-confirmation-expired]}
   [repo account-id email-address secret]
   (let [ownership (get-email-ownership repo email-address)]
     (if (aggregate/exists ownership)
       (email-address-confirmation-expired ownership account-id secret)
-      (command/rejection ownership "No activity on this email address"))))
+      (aggregate/rejection ownership "No activity on this email address"))))
 
 (defevent email-address-confirmation-expired
   "It's taken too long to confirm this email address"
@@ -127,17 +126,17 @@ environment this might be called by a background worker."
   fail if the token is incorrect, the email address was never claimed
   by this account or if another account confirmed the address
   earlier."
-  {::command/events [::email-address-taken]}
+  {::aggregate/events [::email-address-taken]}
   [repo account-id email-address secret]
   (if-let [ownership (aggregate/exists (get-email-ownership repo email-address))]
     (if-let [current-owner-id (:account-id ownership)]
       (if (= current-owner-id account-id)
         ownership ; already owned by account-id
-        (command/rejection ownership "Email address already owned by other account"))
+        (aggregate/rejection ownership "Email address already owned by other account"))
       (if (get-in ownership [:claims account-id secret])
         (email-address-taken ownership account-id)
-        (command/rejection ownership "Invalid confirmation")))
-    (command/rejection nil "Email address was never claimed")))
+        (aggregate/rejection ownership "Invalid confirmation")))
+    (aggregate/rejection nil "Email address was never claimed")))
 
 (defevent email-address-taken
   "This email address was confirmed"
@@ -179,10 +178,10 @@ environment this might be called by a background worker."
 
   [result-of-claim]
   ;; assert that claim was actually accepted
-  (is (sub? {::command/status :ok
-             ::command/events [{:rill.message/type ::email-address-claimed}]}
+  (is (sub? {::aggregate/status :ok
+             ::aggregate/events [{:rill.message/type ::email-address-claimed}]}
             result-of-claim))
-  (get-in result-of-claim [::command/events 0 :secret]))
+  (get-in result-of-claim [::aggregate/events 0 :secret]))
 
 
 ;;;;
@@ -199,9 +198,9 @@ environment this might be called by a background worker."
                      commit!
                      secret-from-claim-result)]
       (is secret)
-      (is (sub? {::command/status :ok
-                 ::command/events [{:rill.message/type ::email-address-taken
-                                    :account-id        :first-user}]}
+      (is (sub? {::aggregate/status :ok
+                 ::aggregate/events [{:rill.message/type ::email-address-taken
+                                      :account-id        :first-user}]}
                 (-> (confirm-email-address repo :first-user "one@example.com" secret)
                     commit!))))))
 
@@ -226,15 +225,15 @@ environment this might be called by a background worker."
       (is secret2 "secret generated for claim 2")
       (is (not= secret1 secret2)
           "secrets are different for each claim")
-      (is (sub? {::command/status :ok
-                 ::command/events [{:rill.message/type ::email-address-taken
-                                    :account-id        :second-user}]}
+      (is (sub? {::aggregate/status :ok
+                 ::aggregate/events [{:rill.message/type ::email-address-taken
+                                      :account-id        :second-user}]}
                 (-> (confirm-email-address repo :second-user "example@example.com" secret2)
                     commit!))
           "first confirmation succeeds")
 
-      (is (command/rejection? (-> (confirm-email-address repo :first-user "example@example.com" secret1)
-                                  commit!))
+      (is (aggregate/rejection? (-> (confirm-email-address repo :first-user "example@example.com" secret1)
+                                    commit!))
           "second confirmation is rejected")))
 
   (testing "User attempting to register already taken address"
@@ -246,21 +245,21 @@ environment this might be called by a background worker."
                      commit!
                      secret-from-claim-result)]
       (is secret "secret generated for first claim")
-      (is (sub? {::command/status :ok
-                 ::command/events [{:rill.message/type ::email-address-taken
-                                    :account-id        :first-user}]}
+      (is (sub? {::aggregate/status :ok
+                 ::aggregate/events [{:rill.message/type ::email-address-taken
+                                      :account-id        :first-user}]}
                 (-> (confirm-email-address repo :first-user "example@example.com" secret)
                     commit!))
           "first confirmation succeeds")
       ;; email address is now owned by :first-user
-      (is (command/rejection? (-> (claim-email-address repo :second-user "example@example.com")
-                                  commit!))
+      (is (aggregate/rejection? (-> (claim-email-address repo :second-user "example@example.com")
+                                    commit!))
           "second claim is rejected immediately")))
 
   (testing "Malicious attempt to register address with non-existing user"
     (let [repo (ephemeral-repository)]
-      (is (command/rejection? (-> (claim-email-address repo :some-other-user "some.address@example.com")
-                                  commit!)))))
+      (is (aggregate/rejection? (-> (claim-email-address repo :some-other-user "some.address@example.com")
+                                    commit!)))))
 
   (testing "Malicious attempt to register address with incorrect token"
     (let [repo   (test-repo-with-two-users)
@@ -268,8 +267,8 @@ environment this might be called by a background worker."
                      (claim-email-address :first-user "one@example.com")
                      commit!
                      secret-from-claim-result)]
-      (is (command/rejection? (-> (confirm-email-address repo :first-user "one@example.com" (random-secret))
-                                  commit!))
+      (is (aggregate/rejection? (-> (confirm-email-address repo :first-user "one@example.com" (random-secret))
+                                    commit!))
           "Guessing a secret will not work")))
 
   (testing "User is too late to confirm registration"
@@ -279,8 +278,8 @@ environment this might be called by a background worker."
                      commit!
                      secret-from-claim-result)]
       (is secret "Secret received")
-      (is (command/ok? (-> (expire-email-address-confirmation repo :first-user "one@example.com" secret)
-                           commit!))
+      (is (aggregate/ok? (-> (expire-email-address-confirmation repo :first-user "one@example.com" secret)
+                             commit!))
           "Timeout committed")
-      (is (command/rejection? (-> (confirm-email-address repo :first-user "one@example.com" secret)
-                                  commit!))))))
+      (is (aggregate/rejection? (-> (confirm-email-address repo :first-user "one@example.com" secret)
+                                    commit!))))))

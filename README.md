@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.20
+  - (breaking) merged `rill.wheel.command` into `rill.wheel.aggregate`
+    namespace
+
 ### v0.1.9
   - Improve & expand documentation
 

@@ -1,9 +1,8 @@
 (ns rill.wheel.aggregate-test
   (:require [clojure.test :refer [deftest testing is]]
-            [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent]]
+            [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent defcommand rejection rejection? ok? commit!]]
             [rill.wheel.testing :refer [ephemeral-repository sub?]]
-            [rill.message :as message]
-            [rill.wheel.command :as command :refer [rejection rejection? ok? commit!]]))
+            [rill.message :as message]))
 
 (defaggregate aggregate1
   "Some documentation"
@@ -122,7 +121,7 @@
 
    (push-arm
     "Push the arm, might turn or be ineffective"
-    {::command/events [::arm-pushed-ineffectively ::arm-turned]}
+    {::aggregate/events [::arm-pushed-ineffectively ::arm-turned]}
     [turnstile]
     (cond
       (not (:installed? turnstile))
@@ -139,32 +138,32 @@
                         (push-arm)
                         commit!)))
 
-    (is (sub? {::command/status :ok
-               ::command/events [{::message/type ::installed}]}
+    (is (sub? {::aggregate/status :ok
+               ::aggregate/events [{::message/type ::installed}]}
               (-> (get-turnstile repo id)
                   (install-turnstile)
                   commit!)))
 
-    (is (sub? {::command/status :ok
-               ::command/events [{::message/type ::arm-pushed-ineffectively}]}
+    (is (sub? {::aggregate/status :ok
+               ::aggregate/events [{::message/type ::arm-pushed-ineffectively}]}
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))
 
-    (is (sub? {::command/status :ok
-               ::command/events [{::message/type ::coin-inserted}]}
+    (is (sub? {::aggregate/status :ok
+               ::aggregate/events [{::message/type ::coin-inserted}]}
               (-> (get-turnstile repo id)
                   (insert-coin)
                   commit!)))
 
-    (is (sub? {::command/status :ok
-               ::command/events [{::message/type ::arm-turned}]}
+    (is (sub? {::aggregate/status :ok
+               ::aggregate/events [{::message/type ::arm-turned}]}
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))
 
-    (is (sub? {::command/status :ok
-               ::command/events [{::message/type ::arm-pushed-ineffectively}]}
+    (is (sub? {::aggregate/status :ok
+               ::aggregate/events [{::message/type ::arm-pushed-ineffectively}]}
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))))
@@ -172,3 +171,87 @@
 (deftest test-type-properties
   (is (= [:prop] (aggregate/type-properties ::aggregate1)))
   (is (= [:turnstile-id] (aggregate/type-properties ::turnstile))))
+
+;;; Command tests
+
+(defaggregate user
+  [email])
+
+(defcommand create-or-fail
+  "Create user if none exists with the given email address."
+  {::aggregate/events [::created]}
+  [user full-name]
+  (if-not (aggregate/new? user)
+    (rejection user "User already exists")
+    (-> user
+        (created full-name))))
+
+(defevent created
+  "A new user was created"
+  [user full-name]
+  (assoc user :full-name full-name))
+
+(defcommand rename
+  {::aggregate/events [::name-changed]}
+  [user new-name]
+  (if-not (aggregate/new? user)
+    (name-changed user new-name)
+    (rejection user "No such user with exists")))
+
+(defevent name-changed
+  "user's `full-name` changed to `new-name`"
+  [user new-name]
+  (assoc user :full-name new-name))
+
+(defevent no-op
+  "To test events with no body"
+  [user arg1 arg2])
+
+(deftest defevent-test
+  (is (= {::aggregate/id         {::aggregate/type ::user
+                                  :email           "user@example.com"}
+          :full-name             "joost"
+          :email                 "user@example.com"
+          ::aggregate/type       ::user
+          ::aggregate/version    -1
+          ::aggregate/new-events [{:rill.message/type ::created
+                                   ::aggregate/type   ::user
+                                   :email             "user@example.com"
+                                   :full-name         "joost"}]}
+         (-> (user "user@example.com")
+             (created "joost")))
+      "Event fn calls handler with created event")
+
+  (is (= {:rill.message/type ::created
+          ::aggregate/type   ::user
+          :email             "user@example.com"
+          :full-name         "joost"}
+         (-> (user "user@example.com")
+             (created-event "joost")))
+      "Can create event standalone")
+
+  (is (= {::aggregate/id         {::aggregate/type ::user
+                                  :email           "user@example.com"}
+          :email                 "user@example.com"
+          ::aggregate/type       ::user
+          ::aggregate/version    -1
+          ::aggregate/new-events [{:rill.message/type ::no-op
+                                   ::aggregate/type   ::user
+                                   :email             "user@example.com"
+                                   :arg1              1
+                                   :arg2              2}]}
+         (-> (user "user@example.com")
+             (no-op 1 2)))))
+
+(deftest aggregate-creation-test
+  (let [repo (ephemeral-repository)]
+    (is (ok? (-> (get-user repo "user@example.com")
+                 (create-or-fail "Full Name")
+                 commit!)))
+    (is (sub? {::aggregate/id      {:email           "user@example.com"
+                                    ::aggregate/type ::user}
+               ::aggregate/type    ::user
+               ::aggregate/version 0
+               :full-name          "Full Name"
+               :email              "user@example.com"}
+              (get-user repo "user@example.com")))))

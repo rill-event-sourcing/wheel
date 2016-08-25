@@ -70,4 +70,4 @@ committed.
 ![Commands](commands.svg)
 
 Commands are functions that take an aggregate and apply new events to
-it. The process is described in detail in [[rill.wheel.command]].
+it. The process is described in detail in [[rill.wheel.aggregate]].

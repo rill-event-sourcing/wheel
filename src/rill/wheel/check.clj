@@ -12,7 +12,7 @@
 
 (defn ns-commands
   [ns]
-  (vars-with-meta ns :rill.wheel.command/command-fn))
+  (vars-with-meta ns :rill.wheel.aggregate/command-fn))
 
 (defn ns-aggregates
   [ns]
@@ -24,12 +24,12 @@
 
 (defn check-command
   [c events]
-  (let [diff (difference (->> c meta :rill.wheel.command/events
+  (let [diff (difference (->> c meta :rill.wheel.aggregate/events
                               (map #(resolve (keyword->sym %)))
                               set)
                          (set events))]
     (when (seq diff)
-      {::command c
+      {::aggregate c
        ::missing-events  diff})))
 
 (defn check

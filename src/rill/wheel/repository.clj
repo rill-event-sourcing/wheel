@@ -8,7 +8,7 @@
     `:rill.wheel.aggregate/new-events`.  Returns `true` on success or
     when there are no new events. `nil` otherwise.
 
-    Application writers should use `rill.wheel.command/commit!`
+    Application writers should use `rill.wheel.aggregate/commit!`
     instead.")
   (update [repo aggregate]
     "Update an aggregate by applying any new comitted events, as
