@@ -434,15 +434,12 @@
   `defevent` statements can be written after the command. This usually
   reads a bit nicer.
 
-       (defcommand answer-question
+       (defcommand answer-question ::question
          \"Try to answer a question\"
-         {::aggregate/events [::answered-correctly ::answered-incorrectly]
-          ::aggregate/aggregate ::question}
-         [repo question user-id answer]
-         (let [question (question repo question-id)]
-           (if (some-check question answer)
-            (answered-correctly question user-id answer)
-            (answered-incorrectly question user-id answer))))
+         [question user-id answer]
+         (if (some-check question answer)
+           (answered-correctly question user-id answer)
+           (answered-incorrectly question user-id answer)))
 
   "
   {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])}
