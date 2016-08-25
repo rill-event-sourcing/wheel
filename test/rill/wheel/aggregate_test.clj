@@ -168,3 +168,7 @@
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))))
+
+(deftest test-type-properties
+  (is (= [:prop] (aggregate/type-properties ::aggregate1)))
+  (is (= [:turnstile-id] (aggregate/type-properties ::turnstile))))

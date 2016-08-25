@@ -245,7 +245,9 @@
   {:arglists '([name doc-string? attr-map? [properties*] pre-post-map? events? commands?])}
   [& args]
   (let [[n descriptor-args & body] (parse-args args)
-        n                          (vary-meta n assoc :rill.wheel.aggregate/descriptor-fn true)
+        n                          (vary-meta n assoc
+                                              ::descriptor-fn true
+                                              ::properties (mapv keyword descriptor-args))
         [prepost body]             (parse-pre-post body)
         repo-arg                   `repository#]
     `(do (defn ~n
@@ -273,3 +275,12 @@
   "Return the type of this aggregate"
   [aggregate]
   (::type aggregate))
+
+(defn type-properties
+  "the properties of the identifier of aggreate type `t`"
+  [t]
+  (-> (symbol (namespace t) (name t))
+      resolve
+      meta
+      ::properties))
+
