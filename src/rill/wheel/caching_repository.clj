@@ -6,11 +6,11 @@
   already applied to the cached aggregate - this ensures that after
   calling `update` the aggregate is as up-to-date as possible.
   "
-  (:require [rill.event-store :as event-store]
-            [rill.wheel.aggregate :as aggregate]
-            [rill.wheel.repository :refer [Repository]]
-            [clojure.core.cache :as cache])
-  (:refer-clojure :exclude [update]))
+  (:refer-clojure :exclude [update])
+  (:require [clojure.core.cache :as cache]
+            [rill.event-store :as event-store]
+            [rill.wheel :as aggregate]
+            [rill.wheel.repository :refer [Repository]]))
 
 (defn- ensure-aggregate-atom-is-in-cache
   [state aggregate-id]

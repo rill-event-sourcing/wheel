@@ -1,15 +1,14 @@
 (ns rill.wheel.wrap-stream-properties-test
-  (:require [rill.wheel.wrap-stream-properties :refer [wrap-stream-properties]]
+  (:require [clojure.test :refer [are deftest is testing]]
             [rill.event-store :refer [append-events retrieve-events]]
             [rill.event-store.memory :refer [memory-store]]
             [rill.event-stream :refer [all-events-stream-id]]
-            [rill.wheel.aggregate :as aggregate :refer [defevent defaggregate ok?]]
-            [rill.wheel.testing :refer [sub?]]
-            [rill.wheel.repository :as repo]
             [rill.message :as msg]
+            [rill.wheel :as aggregate :refer [defaggregate defevent ok?]]
             [rill.wheel.bare-repository :refer [bare-repository]]
-            [clojure.test :refer [deftest testing is are]]))
-
+            [rill.wheel.repository :as repo]
+            [rill.wheel.testing :refer [sub?]]
+            [rill.wheel.wrap-stream-properties :refer [wrap-stream-properties]]))
 
 (defaggregate person
   [given-name family-name])

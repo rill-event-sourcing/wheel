@@ -3,9 +3,12 @@
   registration flow with email validation."
   (:require [clojure.test :refer [deftest is testing]]
             [rill.wheel
-             [aggregate :as aggregate :refer [defaggregate defevent defcommand commit!]]
-             [repository :as repo]
-             [testing :refer [ephemeral-repository sub?]]]))
+             :as
+             aggregate
+             :refer
+             [commit! defaggregate defcommand defevent]]
+            [rill.wheel.repository :as repo]
+            [rill.wheel.testing :refer [ephemeral-repository sub?]]))
 
 ;;;;
 ;;;; Let's define an "account" first so we have a starting point for

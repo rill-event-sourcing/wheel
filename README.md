@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### NEXT
+  - (breaking) Renamed `rill.wheel.aggregate` to `rill.wheel`
+  - Added more documentation
+
 ### v0.1.10
   Modified command setup, allowing commands to be supplied as
   messages.

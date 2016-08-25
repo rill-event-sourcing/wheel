@@ -1,7 +1,7 @@
 (ns rill.wheel.repository-test
   (:require [clojure.test :refer [deftest is testing]]
             [rill.event-store.memory :refer [memory-store]]
-            [rill.wheel.aggregate :as aggregate :refer [defevent defaggregate]]
+            [rill.wheel :as aggregate :refer [defaggregate defevent]]
             [rill.wheel.bare-repository :refer [bare-repository]]
             [rill.wheel.repository :as repo]))
 

@@ -1,7 +1,7 @@
 (ns rill.wheel.bare-repository
   "Defines a minimal repository implementation."
   (:require [rill.event-store :as event-store]
-            [rill.wheel.aggregate :as aggregate]
+            [rill.wheel :as aggregate]
             [rill.wheel.repository :refer [Repository]]))
 
 (defrecord BareRepository [event-store]

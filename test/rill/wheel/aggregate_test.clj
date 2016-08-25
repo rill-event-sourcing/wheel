@@ -1,8 +1,19 @@
 (ns rill.wheel.aggregate-test
-  (:require [clojure.test :refer [deftest testing is]]
-            [rill.wheel.aggregate :as aggregate :refer [defaggregate defevent defcommand rejection rejection? ok? commit! transact!]]
-            [rill.wheel.testing :refer [ephemeral-repository sub?]]
-            [rill.message :as message]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [rill.message :as message]
+            [rill.wheel
+             :as
+             aggregate
+             :refer
+             [commit!
+              defaggregate
+              defcommand
+              defevent
+              ok?
+              rejection
+              rejection?
+              transact!]]
+            [rill.wheel.testing :refer [ephemeral-repository sub?]]))
 
 (defaggregate aggregate1
   "Some documentation"

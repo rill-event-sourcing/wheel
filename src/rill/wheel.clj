@@ -1,10 +1,10 @@
-(ns rill.wheel.aggregate
+(ns rill.wheel
 
   "# Aggregates and Events
 
   ### Synopsis
 
-      (require '[rill.wheel.aggregate :as aggregate
+      (require '[rill.wheel :as aggregate
                  :refer [defaggregate defevent]])
 
       (defaggregate user
@@ -27,9 +27,9 @@
       (registered-event (user \"user@example.com\"))
         => {:rill.message/type :user/registered,
             :email \"user@example.com\",
-            :rill.wheel.aggregate/type :user/user}
+            :rill.wheel/type :user/user}
 
-      (aggregate/new-events some-aggreate)
+      (wheel/new-events some-aggreate)
         => seq-of-events
 
   ### Store and retrieve aggregates in a repository
@@ -80,7 +80,7 @@
         ((install-turnstile
           [repo turnstile-id]
           (let [turnstile (get-turnstile repo turnstile-id)]
-            (if (aggregate/exists turnstile)
+            (if (wheel/exists turnstile)
               (rejection turnstile \"Already exists\")
               (installed turnstile))))
 
@@ -94,7 +94,7 @@
 
          (push-arm
           \"Push the arm, might turn or be ineffective\"
-          {::aggregate/events [::arm-pushed-ineffectively ::arm-turned]}
+          {::wheel/events [::arm-pushed-ineffectively ::arm-turned]}
           [repo turnstile-id]
           (let [turnstile (get-turnstile repo turnstile-id)]
             (cond
@@ -121,7 +121,7 @@
   Before calling the command, the aggregate it applies to should get
   fetched from the `repository`. In rill/wheel, this will always work
   and must be done even for aggregates that have no events applied to
-  them - this will result in an `rill.wheel.aggregate/empty?`
+  them - this will result in an `rill.wheel/empty?`
   aggregate that can be committed later.
 
   ### 2. Calling the command
@@ -222,7 +222,7 @@
 
 
        (ns user
-          (:require [rill.wheel.aggregate :as aggregate
+          (:require [rill.wheel :as aggregate
                                           :refer [defaggregate
                                                   defcommand
                                                   defevent
@@ -424,7 +424,7 @@
   [& args]
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
         [prepost body]                                       (parse-pre-post body)
-        n                                                    (vary-meta n assoc :rill.wheel.aggregate/event-fn true)
+        n                                                    (vary-meta n assoc :rill.wheel/event-fn true)
         n-event                                              (symbol (str (name n) "-event"))]
     `(do ~(when (seq body)
             `(defmethod apply-event ~(keyword-in-current-ns n)
@@ -495,7 +495,7 @@
 (defn uncommitted?
   "`aggregate` has events applied that can be committed."
   [aggregate]
-  (boolean (seq (:rill.wheel.aggregate/new-events aggregate))))
+  (boolean (seq (:rill.wheel/new-events aggregate))))
 
 (defn commit!
   "Commit the result of a command execution. If the command returned a
@@ -506,7 +506,7 @@
   (cond
     (rejection? aggregate-or-rejection)
     aggregate-or-rejection
-    (repo/commit! (:rill.wheel.aggregate/repository aggregate-or-rejection) aggregate-or-rejection)
+    (repo/commit! (:rill.wheel/repository aggregate-or-rejection) aggregate-or-rejection)
     (ok aggregate-or-rejection)
     :else
     (conflict aggregate-or-rejection)))
@@ -538,7 +538,7 @@
   `commit!`.
 
   The metadata of the command may contain a
-  `:rill.wheel.aggregate/events` key, which will specify the types of
+  `:rill.wheel/events` key, which will specify the types of
   the events that may be generated. As a convenience, the
   corresponding event functions are `declare`d automatically so the
   `defevent` statements can be written after the command. This usually
@@ -610,7 +610,7 @@
   first repository argument and retrieves the aggregate.
 
   events? and commands? are sequences of event specs and command specs
-  and passed to `defevent` and `rill.wheel.aggregate/defcommand`
+  and passed to `defevent` and `rill.wheel/defcommand`
   respectively.
 
 
@@ -635,7 +635,7 @@
            ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
            ~(into [repo-arg] descriptor-args)
            (-> (repo/update ~repo-arg (apply ~n ~descriptor-args))
-               (assoc :rill.wheel.aggregate/repository ~repo-arg)))
+               (assoc :rill.wheel/repository ~repo-arg)))
 
          ~@(map (fn [event]
                   `(defevent ~@event))
