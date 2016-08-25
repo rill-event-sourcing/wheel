@@ -158,15 +158,12 @@
 <p>Also defines a function <code>get-{name}</code>, which takes an additional first repository argument and retrieves the aggregate.</p>
 <p>events? and commands? are sequences of event specs and command specs and passed to <code>defevent</code> and <code>rill.wheel.aggregate/defcommand</code> respectively.</p></div></div></div><div class="public anchor" id="var-defcommand"><h3>defcommand</h3><h4 class="type">macro</h4><div class="usage"><code>(defcommand name doc-string? attr-map? [repository properties*] pre-post-map? body)</code></div><div class="doc"><div class="markdown"><p>Defines a command as a named function that takes any arguments and returns an <code>aggregate</code> or <code>rejection</code> that can be passed to <code>commit!</code>.</p>
 <p>The metadata of the command may contain a <code>:rill.wheel.aggregate/events</code> key, which will specify the types of the events that may be generated. As a convenience, the corresponding event functions are <code>declare</code>d automatically so the <code>defevent</code> statements can be written after the command. This usually reads a bit nicer.</p>
-<pre><code> (defcommand answer-question
+<pre><code> (defcommand answer-question ::question
    "Try to answer a question"
-   {::aggregate/events [::answered-correctly ::answered-incorrectly]
-    ::aggregate/aggregate ::question}
-   [repo question user-id answer]
-   (let [question (question repo question-id)]
-     (if (some-check question answer)
-      (answered-correctly question user-id answer)
-      (answered-incorrectly question user-id answer))))
+   [question user-id answer]
+   (if (some-check question answer)
+     (answered-correctly question user-id answer)
+     (answered-incorrectly question user-id answer)))
 </code></pre></div></div></div><div class="public anchor" id="var-defevent"><h3>defevent</h3><h4 class="type">macro</h4><div class="usage"><code>(defevent name doc-string? attr-map? [aggregate properties*] pre-post-map? body*)</code></div><div class="doc"><div class="markdown"><p>Defines function that takes aggregate + properties, constructs an event and applies the event as a new event to aggregate. Properties defined on the aggregate definition will be merged with the event; do not define properties with <code>defevent</code> that are already defined in the corresponding <code>defaggregate</code>.</p>
 <p>For cases where you only need the event and can ignore the aggregate, the function “{name}-event” is defined with the same signature. This function is used by the “{name}” function to generate the event befor calling <code>apply-event</code> (see below).</p>
 <p>The given <code>prepost-map</code>, if supplied gets included in the definiton of the “{name}-event” function.</p>
