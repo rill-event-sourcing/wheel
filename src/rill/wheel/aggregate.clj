@@ -213,6 +213,116 @@
   When the command is acceptable, it should apply the necessary events
   to the aggregate and return the result (the updated aggregate).
 
+  ## Alternative command invocations
+
+  `defcommand` installs a number of functions and multi-methods that
+  can be used to invoke the defined command.
+
+  In the following examples, we assume the following definitions:
+
+
+       (ns user
+          (:require [rill.wheel.aggregate :as aggregate
+                                          :refer [defaggregate
+                                                  defcommand
+                                                  defevent
+                                                  transact!
+                                                  ok?]]))
+
+       (defaggregate user
+          [user-id])
+
+       (defevent registered
+          [user name])
+
+       (defcommand register ::user
+          [user name]
+          (registered user name))
+
+  ### Commands as data
+
+  If you need to, you can describe and execute any command defined
+  with `defcommand` as a message. The commands are implemented as maps
+  with a `rill.message/type` key indicating the command type with a
+  qualified keyword.
+
+  #### Command constructor
+
+  For every `(defcommand cmd-name ...)` definition, a constructor
+  function named `cmd-name-command` is created that will create a
+  valid rill.wheel command message:
+
+      (register-command \"my-id\" \"Some Name\")
+
+      => {:rill.message/type :user/register,
+          :user-id \"my-id\",
+          :name \"Some Name\"}
+
+  Note that the register-command function also takes the identifying
+  properties of the `user` aggregate. This is required so that the
+  correct `user` aggregate can be fetched from the repository.
+
+  #### `transact!`
+
+  You can run the given command message directly into the repository
+  using `transact!`. This will fetch the aggregate using the installed
+  `fetch-aggregate` multi-method, calls `apply-command` and `commit!`
+  the result.
+
+      (ok? (transact! repository
+                      (register-command \"my-id\"
+                                        \"Some Name\")))
+
+      => true
+
+  If your commands are invoked from some remote source (like a
+  single-page application - see the `mpare-net/weir` project), these
+  are the semantics you probably want (excluding authentication etc).
+
+  #### `apply-command`
+
+  The apply-command is used by `transact!` and takes the aggregate to
+  update and the command message and executes the `defcommand` body.
+
+       (-> (get-user repo my-id)
+           (apply-command (register-command my-id my-name)))
+
+  #### `fetch-aggregate`
+
+  Also used by `transact!`, this method takes the repository and the
+  command message and returns the aggregate the command should be
+  applied to.
+
+  ### Commands as functions
+
+  It's convenient to be able to call commands directly as regular
+  names functions. For this purpose there are two flavors:
+
+  #### `command-name!`
+
+  A generated function named after the command with an exclamation
+  mark added. Takes the repository and all arguments to identify the
+  aggregate and other command options, and commits the result.
+
+       (ok? (register! repository \"user-id\" \"Some Name\"))
+
+       => true
+
+  #### `command-name`
+
+  Another generated function that takes the aggregate as the first
+  argument and the additional command arguments and applies the
+  command to the aggregate. This does not commit and returns the
+  updated aggregate or a a rejection. You can chain successful calls
+  to named command functions and `commit!` the result.
+
+       (ok? (-> repository
+              (get-user \"user-id\")
+              (register \"Some Name\")
+              (commit!)))
+
+       => true
+
   ## See also
 
   - `rill.event-store`
@@ -368,8 +478,8 @@
 
 (defn ok [aggregate]
   (let [events (::new-events aggregate)]
-    {::status :ok
-     ::events events
+    {::status    :ok
+     ::events    events
      ::aggregate (-> aggregate
                      (update ::version + (count events))
                      (assoc ::new-events []))}))
@@ -481,8 +591,8 @@
            ~(into [aggregate] props)
            (apply-command ~aggregate (~(symbol (str n "-command"))
                                       ~@(map (fn [p]
-                                                 `(get ~aggregate ~(keyword p)))
-                                               fetch-props)
+                                               `(get ~aggregate ~(keyword p)))
+                                             fetch-props)
                                       ~@props)))
 
          (defn ~(symbol (str (name n) "!"))
