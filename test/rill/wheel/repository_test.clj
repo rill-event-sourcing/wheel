@@ -7,11 +7,11 @@
 
 (defaggregate creature [id species])
 
-(defevent layed
+(defevent layed ::creature
   [creature]
   (assoc creature :egg? true))
 
-(defevent hatched
+(defevent hatched ::creature
   [creature]
   (assoc creature
          :egg? false

@@ -1,4 +1,4 @@
-(ns rill.wheel.aggregate-test
+(ns rill.wheel-test
   (:require [clojure.test :refer [deftest is testing]]
             [rill.message :as message]
             [rill.wheel
@@ -54,7 +54,7 @@
                (aggregate3 123))
       "preconditions work"))
 
-(defevent with-prepost
+(defevent with-prepost ::aggregate1
   [aggregate number-smaller-than-10]
   {:pre  [(number? number-smaller-than-10)]
    :post [(< (:number-smaller-than-10 %) 10)]}
@@ -197,7 +197,7 @@
     (-> user
         (created full-name))))
 
-(defevent created
+(defevent created ::user
   "A new user was created"
   [user full-name]
   (assoc user :full-name full-name))
@@ -209,12 +209,12 @@
     (name-changed user new-name)
     (rejection user "No such user with exists")))
 
-(defevent name-changed
+(defevent name-changed ::user
   "user's `full-name` changed to `new-name`"
   [user new-name]
   (assoc user :full-name new-name))
 
-(defevent no-op
+(defevent no-op ::user
   "To test events with no body"
   [user arg1 arg2])
 
@@ -286,3 +286,7 @@
     (is (ok? (rename-alt-impl! repo "user@example.com" "Other Name")))))
 
 
+(deftest test-collisions
+  (is (thrown? IllegalStateException
+               (eval '(rill.wheel/defevent colliding-event ::user
+                        [user email])))))

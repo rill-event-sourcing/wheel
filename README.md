@@ -18,6 +18,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ### NEXT
   - (breaking) Renamed `rill.wheel.aggregate` to `rill.wheel`
+  - (breaking) `defevent` now takes aggregate type as a required
+    argument.
+  - `defevent` checks for collisions of event properties with
+    aggregate identifier
   - Added more documentation
 
 ### v0.1.10

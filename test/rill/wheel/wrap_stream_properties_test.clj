@@ -13,7 +13,7 @@
 (defaggregate person
   [given-name family-name])
 
-(defevent registered
+(defevent registered ::person
   [p]
   p)
 

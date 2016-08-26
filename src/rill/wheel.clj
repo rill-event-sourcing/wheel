@@ -11,12 +11,12 @@
         \"a user is identified by a single `email` property\"
         [email])
 
-      (defevent registered
+      (defevent registered ::user
         \"user was correctly registered\"
         [user]
         (assoc user :registered? true))
 
-      (defevent unregistered
+      (defevent unregistered ::user
         \"user has unregistered\"
         [user]
         (dissoc user :registered?))
@@ -232,7 +232,7 @@
        (defaggregate user
           [user-id])
 
-       (defevent registered
+       (defevent registered ::user
           [user name])
 
        (defcommand register ::user
@@ -330,6 +330,7 @@
   (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
+            [clojure.string :as string]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns parse-pre-post]]))
 
 (defmulti apply-event
@@ -358,7 +359,8 @@
 (defn aggregate?
   "Test that `obj` is an aggregate"
   [obj]
-  (boolean (::id obj)))
+  (boolean (and (::id obj)
+                (::type obj))))
 
 (defn empty
   "Create a new aggregate with id `aggregate-id` and no
@@ -401,12 +403,20 @@
     (merge partial-event (::id aggregate))
     partial-event))
 
+(defn type-properties
+  "the properties of the identifier of aggreate type `t`"
+  [t]
+  (-> (symbol (namespace t) (name t))
+      resolve
+      meta
+      ::properties))
+
 (defmacro defevent
   "Defines function that takes aggregate + properties, constructs an
   event and applies the event as a new event to aggregate. Properties
-  defined on the aggregate definition will be merged with the event;
-  do not define properties with `defevent` that are already defined in
-  the corresponding `defaggregate`.
+  defined on the `aggregate-type` definition will be merged with the
+  event; do not define properties with `defevent` that are already
+  defined in the corresponding `defaggregate`.
 
   For cases where you only need the event and can ignore the
   aggregate, the function \"{name}-event\" is defined with the same
@@ -420,12 +430,23 @@
   that applies the event to the aggregate. If no `body` is supplied,
   the default `apply-event` will be used, which will return the
   aggregate as is."
-  {:arglists '([name doc-string? attr-map? [aggregate properties*] pre-post-map?  body*])}
-  [& args]
-  (let [[n [aggregate & properties :as handler-args] & body] (parse-args args)
+  {:arglists '([name aggregate-type doc-string? attr-map? [aggregate properties*] pre-post-map?  body*])}
+  [n t & args]
+  (when-not (keyword? t)
+    (throw (IllegalArgumentException. "Second argument to defevent should be the type of the aggregate.")))
+  (let [[n [aggregate & properties :as handler-args] & body] (parse-args (cons n args))
         [prepost body]                                       (parse-pre-post body)
-        n                                                    (vary-meta n assoc :rill.wheel/event-fn true)
-        n-event                                              (symbol (str (name n) "-event"))]
+        n                                                    (vary-meta n assoc
+                                                                        :rill.wheel/event-fn true
+                                                                        :rill.wheel/aggregate t)
+        n-event                                              (symbol (str (name n) "-event"))
+        fetch-props                                          (type-properties t)
+        _                                                    (when-not (vector? fetch-props)
+                                                               (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
+        fetch-props                                          (mapv #(-> % name symbol) fetch-props)]
+    (when-let [collisions (seq (filter (set fetch-props) properties))]
+      (throw (IllegalStateException. (str "defevent " n " has properties colliding with definition of aggregate " (name t) ": " (string/join ", " collisions)))))
+    
     `(do ~(when (seq body)
             `(defmethod apply-event ~(keyword-in-current-ns n)
                [~aggregate {:keys ~(vec properties)}]
@@ -450,13 +471,7 @@
   [aggregate]
   (::type aggregate))
 
-(defn type-properties
-  "the properties of the identifier of aggreate type `t`"
-  [t]
-  (-> (symbol (namespace t) (name t))
-      resolve
-      meta
-      ::properties))
+
 
 (defn repository
   "Return the repository of `aggregate`."
@@ -552,9 +567,9 @@
            (answered-incorrectly question user-id answer)))
 
   "
-  {:arglists '([name doc-string? attr-map? [repository properties*] pre-post-map? body])}
+  {:arglists '([name aggregate-type doc-string? attr-map? [repository properties*] pre-post-map? body])}
   [n t & args]
-  (when-not (or (symbol? t) (keyword? t))
+  (when-not (keyword? t)
     (throw (IllegalArgumentException. "Second argument to defcommand should be the type of the aggregate.")))
   (let [[n [aggregate & props] & body] (parse-args (cons n args))
         n                              (vary-meta n assoc
@@ -638,7 +653,7 @@
                (assoc :rill.wheel/repository ~repo-arg)))
 
          ~@(map (fn [event]
-                  `(defevent ~@event))
+                  `(defevent ~(first event) ~(keyword-in-current-ns n) ~@(rest event)))
                 (first body))
          ~@(map (fn [command]
                   `(defcommand ~(first command) ~(keyword-in-current-ns n) ~@(rest command)))
