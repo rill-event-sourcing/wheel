@@ -482,26 +482,46 @@
 
 ;;;; Command handling
 
-(defn rejection? [result]
+(defn rejection
+  [aggregate reason]
+  {::status :rejected ::reason reason ::aggregate aggregate})
+
+(defn rejection?
+  [result]
   (= (::status result) :rejected))
 
-(defn ok? [result]
-  (= (::status result) :ok))
-
-(defn conflict? [result]
+(defn conflict?
+  [result]
   (= (::status result) :conflict))
 
-(defn ok [aggregate]
+(defn reason
+  "Return the reason for a `rejection`. Returns `:rill.wheel/conflict`
+  for a conflict."
+  [rejection]
+  (if (conflict? rejection)
+    ::conflict
+    (::reason rejection)))
+
+(defn aggregate
+  "Return the aggregate from a result. If the result *is* an
+  aggregate, returns it as is."
+  [result]
+  (if (aggregate? result)
+    aggregate
+    (::aggregate result)))
+
+(defn ok?
+  [result]
+  (= (::status result) :ok))
+
+(defn ok
+  [aggregate]
   (let [events (::new-events aggregate)]
     {::status    :ok
      ::events    events
      ::aggregate (-> aggregate
                      (update ::version + (count events))
                      (assoc ::new-events []))}))
-
-(defn rejection
-  [aggregate reason]
-  {::status :rejected ::reason reason ::aggregate aggregate})
 
 (defn conflict
   [aggregate]

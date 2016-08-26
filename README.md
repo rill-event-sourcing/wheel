@@ -16,13 +16,14 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### NEXT
+### v0.1.11
   - (breaking) Renamed `rill.wheel.aggregate` to `rill.wheel`
   - (breaking) `defevent` now takes aggregate type as a required
-    argument.
+    argument
   - `defevent` checks for collisions of event properties with
     aggregate identifier
   - Added more documentation
+  - Added `reason` function to get reason for a `rejection`
 
 ### v0.1.10
   Modified command setup, allowing commands to be supplied as
