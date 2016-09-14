@@ -16,8 +16,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### v0.1.12-SNAPSHOT
-  - fixed regressions in `rill.wheel.check`
+### v0.1.12
   - added `:rill.wheel/properties` metadata to events and commands
   - added markdown reporting
 
