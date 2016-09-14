@@ -1,6 +1,6 @@
-(ns rill.wheel.check
-  (:require [clojure.set :refer [difference]]
-            [clojure.string :as string]))
+(ns rill.wheel.report
+  "Tools for reporting on aggregates, events and commands"
+  (:require [clojure.string :as string]))
 
 (defn- vars-with-meta
   [ns k]
@@ -35,23 +35,7 @@
   [k]
   (symbol (subs (str k) 1)))
 
-(defn check-command
-  [c events]
-  (let [diff (difference (->> c meta :rill.wheel/events
-                              (map #(resolve (keyword->sym %)))
-                              set)
-                         (set events))]
-    (when (seq diff)
-      {::aggregate      c
-       ::missing-events diff})))
-
-(defn check
-  []
-  (let [events (set (mapcat ns-events (all-ns)))]
-    (keep #(check-command % events)
-          (commands))))
-
-(defn wheel-type
+(defn- wheel-type
   [m]
   (if (var? m)
     (wheel-type (meta m))
@@ -80,7 +64,8 @@
           a-map
           (commands)))
 
-(defn report
+(defn report-data
+  "Map with metadata for all aggregates, including events and commands"
   []
   (-> (report-map (aggregates))
       (assoc-events)
@@ -136,7 +121,7 @@
                     (conj "\n\n")))))
        (apply str)))
 
-(defn report->markdown
+(defn report-data->markdown
   [r]
   (->> (sort (keys r))
        (mapcat (fn [k]
@@ -152,3 +137,11 @@
                               "## Commands\n\n"])
                        (into (msglist (:rill.wheel/commands m)))))))
        (apply str "# Model overview\n\n")))
+
+(defn report
+  "Markdown formatted report of all aggregates, events and commands in
+  the system."
+  []
+  (-> (report-data)
+      (report-data->markdown)))
+
