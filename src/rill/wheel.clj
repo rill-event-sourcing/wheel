@@ -437,8 +437,9 @@
   (let [[n [aggregate & properties :as handler-args] & body] (parse-args (cons n args))
         [prepost body]                                       (parse-pre-post body)
         n                                                    (vary-meta n assoc
-                                                                        :rill.wheel/event-fn true
-                                                                        :rill.wheel/aggregate t)
+                                                                        ::event-fn true
+                                                                        ::aggregate t
+                                                                        ::properties (mapv keyword properties))
         n-event                                              (symbol (str (name n) "-event"))
         fetch-props                                          (type-properties t)
         _                                                    (when-not (vector? fetch-props)
@@ -594,7 +595,8 @@
   (let [[n [aggregate & props] & body] (parse-args (cons n args))
         n                              (vary-meta n assoc
                                                   ::command-fn true
-                                                  ::aggregate t)
+                                                  ::aggregate t
+                                                  ::properties (mapv keyword props))
         m                              (meta n)
         fetch-props                    (type-properties t)
         _                              (when-not (vector? fetch-props)
@@ -622,7 +624,7 @@
                          [(keyword k) k])
                        (into fetch-props props))))
          (defn ~n
-           ~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate))
+           ;~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate))
            ~(into [aggregate] props)
            (apply-command ~aggregate (~(symbol (str n "-command"))
                                       ~@(map (fn [p]

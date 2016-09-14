@@ -16,6 +16,11 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.12-SNAPSHOT
+  - fixed regressions in `rill.wheel.check`
+  - added `:rill.wheel/properties` metadata to events and commands
+  - added markdown reporting
+
 ### v0.1.11
   - (breaking) Renamed `rill.wheel.aggregate` to `rill.wheel`
   - (breaking) `defevent` now takes aggregate type as a required
