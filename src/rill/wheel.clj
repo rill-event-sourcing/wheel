@@ -194,7 +194,7 @@
   applied it will set key `:a` of aggregate `obj`.
 
   It's idiomatic to give events a past-tense name, to indicate that
-  the event happened and cannot be rejected (once it's committed).
+  the event happened and cannot be rejected.
 
   ### 3. Define command
 
