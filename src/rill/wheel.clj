@@ -135,7 +135,7 @@
 
   #### Success
 
-  A successful command returns an `uncomitted?` aggregate.
+  A successful command returns an `uncommitted?` aggregate.
 
   #### Rejection
 
@@ -194,7 +194,7 @@
   applied it will set key `:a` of aggregate `obj`.
 
   It's idiomatic to give events a past-tense name, to indicate that
-  the event happened and is not .
+  the event happened and cannot be rejected (once it's committed).
 
   ### 3. Define command
 
