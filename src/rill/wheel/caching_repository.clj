@@ -1,6 +1,6 @@
 (ns rill.wheel.caching-repository
   "Defines a repository that takes a cache for its aggregates.
-  
+
   Calling `rill.wheel.repository/update` on this repository will still
   call the backing `event-store` to retrieve any new events not
   already applied to the cached aggregate - this ensures that after

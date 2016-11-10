@@ -11,7 +11,7 @@
     Application writers should use `rill.wheel.aggregate/commit!`
     instead.")
   (update [repo aggregate]
-    "Update an aggregate by applying any new comitted events, as
+    "Update an aggregate by applying any new committed events, as
     determined by `:rill.wheel.aggregate/version`.
 
     Application writers should call the `get-{aggregate-name}`

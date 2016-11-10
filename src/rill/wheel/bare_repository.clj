@@ -20,6 +20,6 @@
 
 (defn bare-repository
   "A bare-bones repository that stores its events in a rill
-  event-store"
+  event-store."
   [event-store]
   (->BareRepository event-store))

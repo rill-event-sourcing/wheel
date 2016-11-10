@@ -130,7 +130,7 @@
   commands to take the aggregate-to-change as the first argument.
 
   As a matter of style, it's suggested that commands do not fetch
-  other objects from the repostory but are explicitly passed any
+  other objects from the repository but are explicitly passed any
   necessary aggregates.
 
   #### Success
@@ -160,7 +160,7 @@
 
   ### conflict
 
-  Commiting an updated aggregate can return a `conflict`, meaning
+  Committing an updated aggregate can return a `conflict`, meaning
   there were changes to the aggregate in the repository in the time
   between fetching the aggregate and calling `commit!`.
 
@@ -313,7 +313,7 @@
   Another generated function that takes the aggregate as the first
   argument and the additional command arguments and applies the
   command to the aggregate. This does not commit and returns the
-  updated aggregate or a a rejection. You can chain successful calls
+  updated aggregate or a rejection. You can chain successful calls
   to named command functions and `commit!` the result.
 
        (ok? (-> repository
@@ -335,7 +335,7 @@
 
 (defmulti apply-event
   "Update the properties of `aggregate` given `event`. Implementation
-  for different event types will be given by `defevent`"
+  for different event types will be given by `defevent`."
   (fn [aggregate event]
     (:rill.message/type event)))
 
@@ -357,7 +357,7 @@
   (::new-events aggregate))
 
 (defn aggregate?
-  "Test that `obj` is an aggregate"
+  "Test that `obj` is an aggregate."
   [obj]
   (boolean (and (::id obj)
                 (::type obj))))
@@ -378,13 +378,13 @@
   (= (::version aggregate) -1))
 
 (defn empty?
-  "Test that the aggregate is new and has no uncommitted events"
+  "Test that the aggregate is new and has no uncommitted events."
   [aggregate]
   (and (new? aggregate)
        (clojure.core/empty? (::new-events aggregate))))
 
 (defn exists
-  "If aggregate is not new, return aggregate, otherwise nil"
+  "If aggregate is not new, return aggregate, otherwise nil."
   [aggregate]
   (when-not (new? aggregate)
     aggregate))
@@ -404,7 +404,7 @@
     partial-event))
 
 (defn type-properties
-  "the properties of the identifier of aggreate type `t`"
+  "The properties of the identifier of aggregate type `t`."
   [t]
   (-> (symbol (namespace t) (name t))
       resolve
@@ -421,9 +421,9 @@
   For cases where you only need the event and can ignore the
   aggregate, the function \"{name}-event\" is defined with the same
   signature. This function is used by the \"{name}\" function to
-  generate the event befor calling `apply-event` (see below).
+  generate the event before calling `apply-event` (see below).
 
-  The given `prepost-map`, if supplied gets included in the definiton
+  The given `prepost-map`, if supplied gets included in the definition
   of the \"{name}-event\" function.
 
   The given `body`, if supplied, defines an `apply-event` multimethod
@@ -447,7 +447,7 @@
         fetch-props                                          (mapv #(-> % name symbol) fetch-props)]
     (when-let [collisions (seq (filter (set fetch-props) properties))]
       (throw (IllegalStateException. (str "defevent " n " has properties colliding with definition of aggregate " (name t) ": " (string/join ", " collisions)))))
-    
+
     `(do ~(when (seq body)
             `(defmethod apply-event ~(keyword-in-current-ns n)
                [~aggregate {:keys ~(vec properties)}]
@@ -468,7 +468,7 @@
 
 
 (defn type
-  "Return the type of this aggregate"
+  "Return the type of this aggregate."
   [aggregate]
   (::type aggregate))
 
@@ -484,14 +484,18 @@
 ;;;; Command handling
 
 (defn rejection
+  "Create a rejection for aggregate with reason."
   [aggregate reason]
   {::status :rejected ::reason reason ::aggregate aggregate})
 
 (defn rejection?
+  "Checks if result is rejected."
   [result]
   (= (::status result) :rejected))
 
 (defn conflict?
+  "Was there a conflict between fetching the aggregate and calling
+   `commit`?"
   [result]
   (= (::status result) :conflict))
 
@@ -512,10 +516,13 @@
     (::aggregate result)))
 
 (defn ok?
+  "Is result an `ok?` object?"
   [result]
   (= (::status result) :ok))
 
 (defn ok
+  "Creates an `ok?` object describing the committed events and
+  aggregate."
   [aggregate]
   (let [events (::new-events aggregate)]
     {::status    :ok
@@ -525,6 +532,9 @@
                      (assoc ::new-events []))}))
 
 (defn conflict
+  "Creates a `conflict`. Use `conflict` when there were changes to
+  the aggregate in the repository in the time between fetching the
+  aggregate and calling `commit!`."
   [aggregate]
   {::status :conflict ::aggregate aggregate})
 
@@ -548,18 +558,18 @@
     (conflict aggregate-or-rejection)))
 
 (defmulti fetch-aggregate
-  "Given a command and repository, fetch the target aggregate"
+  "Given a command and repository, fetch the target aggregate."
   (fn [repo command]
     (:rill.message/type command)))
 
 (defmulti apply-command
   "Given a command and aggregate, apply the command to the
-  aggregate. Should return an updated aggregate or a rejection"
+  aggregate. Should return an updated aggregate or a rejection."
   (fn [repo command]
     (:rill.message/type command)))
 
 (defn transact!
-  "Run and commit the given command against the repository"
+  "Run and commit the given command against the repository."
   [repo command]
   (-> (fetch-aggregate repo command)
       (apply-command command)
