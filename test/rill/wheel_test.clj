@@ -288,9 +288,11 @@
     (is (ok? (-> (get-user repo "user@example.com")
                  (create-or-fail "Full Name")
                  commit!)))
-    (is (ok? (transact! repo (rename-alt-impl-command "user@example.com" "Other Name"))))
 
     (is (ok? (transact! repo (->rename-alt-impl "user@example.com" "Other Name"))))
+
+    (testing "deprecated variant"
+      (is (ok? (transact! repo (rename-alt-impl-command "user@example.com" "Other Name")))))
 
     (is (ok? (rename-alt-impl! repo "user@example.com" "Other Name")))))
 

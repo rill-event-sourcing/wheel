@@ -249,16 +249,16 @@
   #### Command constructor
 
   For every `(defcommand cmd-name ...)` definition, a constructor
-  function named `cmd-name-command` is created that will create a
-  valid rill.wheel command message:
+  function named `->cmd-name` is created that will create a valid
+  rill.wheel command message:
 
-      (register-command \"my-id\" \"Some Name\")
+      (->register \"my-id\" \"Some Name\")
 
       => {:rill.message/type :user/register,
           :user-id \"my-id\",
           :name \"Some Name\"}
 
-  Note that the register-command function also takes the identifying
+  Note that the ->register function also takes the identifying
   properties of the `user` aggregate. This is required so that the
   correct `user` aggregate can be fetched from the repository.
 
@@ -270,8 +270,8 @@
   the result.
 
       (ok? (transact! repository
-                      (register-command \"my-id\"
-                                        \"Some Name\")))
+                      (->register \"my-id\"
+                                  \"Some Name\")))
 
       => true
 
@@ -285,7 +285,7 @@
   update and the command message and executes the `defcommand` body.
 
        (-> (get-user repo my-id)
-           (apply-command (register-command my-id my-name)))
+           (apply-command (->register my-id my-name)))
 
   #### `fetch-aggregate`
 
@@ -646,11 +646,11 @@
            {:deprecated true}
            ~(into fetch-props props)
            ~(cons (symbol (str "->" n)) (into fetch-props props)))
-         
+
          (defn ~n
            ;~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate))
            ~(into [aggregate] props)
-           (apply-command ~aggregate (~(symbol (str n "-command"))
+           (apply-command ~aggregate (~(symbol (str "->" n))
                                       ~@(map (fn [p]
                                                `(get ~aggregate ~(keyword p)))
                                              fetch-props)
@@ -659,7 +659,7 @@
          (defn ~(symbol (str (name n) "!"))
            ~(format "Apply command %s to repository and commit" (name n))
            [repository# ~@fetch-props ~@props]
-           (transact! repository# (~(symbol (str (name n) "-command")) ~@fetch-props ~@props))))))
+           (transact! repository# (~(symbol (str "->" (name n))) ~@fetch-props ~@props))))))
 
 (defmacro defaggregate
   "Defines an aggregate type, and aggregate-id function. The
