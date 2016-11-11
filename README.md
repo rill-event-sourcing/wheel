@@ -19,6 +19,9 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 ### v0.1.13-SNAPSHOT
   - added `rill.wheel.wrap-new-events-callback` event store wrapper
   - small documentation typos fixed
+  - added `->{event-name}` constructor function
+  - added `->{command-name}` constructor function
+  - deprecated `{command-name}-command` function
 
 ### v0.1.12
   - added `:rill.wheel/properties` metadata to events and commands

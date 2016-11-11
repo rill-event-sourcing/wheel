@@ -452,6 +452,13 @@
             `(defmethod apply-event ~(keyword-in-current-ns n)
                [~aggregate {:keys ~(vec properties)}]
                ~@body))
+         (defn ~(symbol (str "->" (name n)))
+           ~(into fetch-props properties)
+           ~(into {:rill.message/type (keyword-in-current-ns n)
+                   :rill.wheel/type t}
+                  (map (fn [k]
+                         [(keyword k) k])
+                       (concat fetch-props properties))))
          (defn ~n-event
            (~handler-args
             ~@(when prepost
@@ -626,13 +633,20 @@
            [repository# {:keys ~fetch-props}]
            (~getter repository# ~@fetch-props))
 
-         (defn ~(symbol (str n "-command"))
+         (defn ~(symbol (str "->" n))
            ~(format "Construct a %s command message" (name n))
            ~(into fetch-props props)
            ~(into {:rill.message/type (keyword-in-current-ns n)}
                   (map (fn [k]
                          [(keyword k) k])
                        (into fetch-props props))))
+
+         (defn ~(symbol (str n "-command"))
+           ~(format "Construct a %s command message. Deprecated, use `->%s` instead" (name n) (name n))
+           {:deprecated true}
+           ~(into fetch-props props)
+           ~(cons (symbol (str "->" n)) (into fetch-props props)))
+         
          (defn ~n
            ;~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate))
            ~(into [aggregate] props)

@@ -239,6 +239,13 @@
           :full-name         "joost"}
          (-> (user "user@example.com")
              (created-event "joost")))
+      "Can create event with aggregate")
+
+  (is (= {:rill.message/type ::created
+          ::aggregate/type   ::user
+          :email             "user@example.com"
+          :full-name         "joost"}
+         (->created "user@example.com" "joost"))
       "Can create event standalone")
 
   (is (= {::aggregate/id         {::aggregate/type ::user
@@ -282,6 +289,8 @@
                  (create-or-fail "Full Name")
                  commit!)))
     (is (ok? (transact! repo (rename-alt-impl-command "user@example.com" "Other Name"))))
+
+    (is (ok? (transact! repo (->rename-alt-impl "user@example.com" "Other Name"))))
 
     (is (ok? (rename-alt-impl! repo "user@example.com" "Other Name")))))
 
