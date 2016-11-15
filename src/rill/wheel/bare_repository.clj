@@ -2,7 +2,8 @@
   "Defines a minimal repository implementation."
   (:require [rill.event-store :as event-store]
             [rill.wheel :as aggregate]
-            [rill.wheel.repository :refer [Repository]]))
+            [rill.wheel.repository :refer [Repository]]
+            [rill.wheel.trigger :refer [with-triggers]]))
 
 (defrecord BareRepository [event-store]
   Repository
@@ -22,4 +23,4 @@
   "A bare-bones repository that stores its events in a rill
   event-store."
   [event-store]
-  (->BareRepository event-store))
+  (with-triggers (->BareRepository event-store)))

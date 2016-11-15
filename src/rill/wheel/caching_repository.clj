@@ -10,7 +10,8 @@
   (:require [clojure.core.cache :as cache]
             [rill.event-store :as event-store]
             [rill.wheel :as aggregate]
-            [rill.wheel.repository :refer [Repository]]))
+            [rill.wheel.repository :refer [Repository]]
+            [rill.wheel.trigger :refer [with-triggers]]))
 
 (defn- ensure-aggregate-atom-is-in-cache
   [state aggregate-id]
@@ -58,6 +59,6 @@
   a `clojure.core.cache` cache. By default a least-recently-used cache
   of 20000 items is used."
   ([event-store cache]
-   (->CachingRepository event-store (atom cache)))
+   (with-triggers (->CachingRepository event-store (atom cache))))
   ([event-store]
    (caching-repository event-store (cache/lru-cache-factory {} :threshold 20000))))

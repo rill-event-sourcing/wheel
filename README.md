@@ -17,6 +17,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 ## Changelog
 
 ### v0.1.13-SNAPSHOT
+  - added triggers. See `rill.wheel.trigger`
   - added `rill.wheel.wrap-new-events-callback` event store wrapper
   - small documentation typos fixed
   - added `->{event-name}` constructor function
