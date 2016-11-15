@@ -47,7 +47,8 @@
       ;; not using `swap!` here because update-aggregate might block
       ;; on network to event store. worst case, we need to fetch a few
       ;; more events next time we fetch this aggregate.
-      (reset! a (update-aggregate to-update event-store)))))
+      (reset! a (update-aggregate to-update event-store))))
+  (event-store [repo] event-store))
 
 
 ;; leave these out of the documentation

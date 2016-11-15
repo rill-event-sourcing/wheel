@@ -13,7 +13,8 @@
       (event-store/append-events event-store (::aggregate/id aggregate) (::aggregate/version aggregate) events)
       true))
   (update [repo aggregate]
-    (reduce aggregate/apply-stored-event aggregate (event-store/retrieve-events-since event-store (::aggregate/id aggregate) (::aggregate/version aggregate) 0))))
+    (reduce aggregate/apply-stored-event aggregate (event-store/retrieve-events-since event-store (::aggregate/id aggregate) (::aggregate/version aggregate) 0)))
+  (event-store [repo] event-store))
 
 ;; leave these out of the documentation
 (alter-meta! #'->BareRepository assoc :private true)

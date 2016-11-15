@@ -41,7 +41,9 @@
         (call-triggers this aggregate events)
         true)))
   (repository/update [this aggregate]
-    (repository/update wrapped aggregate)))
+    (repository/update wrapped aggregate))
+  (repository/event-store [this]
+    (repository/event-store wrapped)))
 
 (defn with-triggers
   "Wrap a repository with triggers. The standard `rill.wheel`
