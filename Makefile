@@ -14,3 +14,8 @@ docs: images
 gh-pages: docs
 	rm -rf gh-pages/*
 	cp -rf target/doc/* gh-pages/
+
+.PHONY: docs test
+
+test:
+	lein test
