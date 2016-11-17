@@ -1,13 +1,15 @@
 (ns rill.wheel.wrap-new-events-callback-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [clojure.test :refer [deftest is use-fixtures]]
             [rill.event-store.memory :refer [memory-store]]
             [rill.message :as msg]
             [rill.wheel :as aggregate :refer [defaggregate defevent]]
             [rill.wheel.bare-repository :refer [bare-repository]]
             [rill.wheel.repository :as repo]
-            [rill.wheel.testing :refer [sub?]]
+            [rill.wheel.testing :refer [sub? with-instrument-all]]
             [rill.wheel.wrap-new-events-callback :refer [wrap-new-events-callback]]
             [rill.wheel.wrap-stream-properties :refer [wrap-stream-properties]]))
+
+(use-fixtures :once with-instrument-all)
 
 (defaggregate person
   [given-name family-name])

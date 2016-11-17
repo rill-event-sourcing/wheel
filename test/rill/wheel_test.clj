@@ -1,5 +1,5 @@
 (ns rill.wheel-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [rill.message :as message]
             [rill.wheel
              :as
@@ -13,7 +13,7 @@
               rejection
               rejection?
               transact!]]
-            [rill.wheel.testing :refer [ephemeral-repository sub?]]))
+            [rill.wheel.testing :refer [ephemeral-repository sub? with-instrument-all]]))
 
 (defaggregate aggregate1
   "Some documentation"
@@ -301,3 +301,5 @@
   (is (thrown? IllegalStateException
                (eval '(rill.wheel/defevent colliding-event ::user
                         [user email])))))
+
+(use-fixtures :once with-instrument-all)

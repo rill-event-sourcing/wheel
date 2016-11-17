@@ -1,7 +1,8 @@
 (ns rill.wheel.testing
   "Tools for unit-testing ring.wheel code."
   (:require [rill.event-store.memory :refer [memory-store]]
-            [rill.wheel.bare-repository :refer [bare-repository]]))
+            [rill.wheel.bare-repository :refer [bare-repository]]
+            [clojure.spec.test :as stest]))
 
 (defn sub?
   "true if `sub` is either `nil`, equal to `x`, or a recursive
@@ -66,3 +67,10 @@
   "Return an empty repostory backed by an in-memory event-store."
   []
   (bare-repository (memory-store)))
+
+(defn with-instrument-all
+  [t]
+  (let [instrumented (stest/instrument)]
+    (t)
+    (stest/unstrument instrumented)))
+

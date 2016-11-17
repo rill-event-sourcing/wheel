@@ -20,3 +20,8 @@
   (event-store [repo]
     "The backing event store for this repository"))
 
+(defn repository?
+  "Test if `repo` is a repository"
+  [repo]
+  (satisfies? Repository repo))
+

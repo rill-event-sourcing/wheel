@@ -1,14 +1,16 @@
 (ns rill.wheel.registration-flow-example-test
   "This test demonstrates something close to a standard user
   registration flow with email validation."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [rill.wheel
              :as
              wheel
              :refer
              [commit! defaggregate defcommand defevent]]
             [rill.wheel.repository :as repo]
-            [rill.wheel.testing :refer [ephemeral-repository sub?]]))
+            [rill.wheel.testing :refer [ephemeral-repository sub? with-instrument-all]]))
+
+(use-fixtures :once with-instrument-all)
 
 ;;;;
 ;;;; Let's define an "account" first so we have a starting point for

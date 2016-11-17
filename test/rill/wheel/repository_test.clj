@@ -1,9 +1,12 @@
 (ns rill.wheel.repository-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [rill.event-store.memory :refer [memory-store]]
             [rill.wheel :as aggregate :refer [defaggregate defevent]]
             [rill.wheel.bare-repository :refer [bare-repository]]
-            [rill.wheel.repository :as repo]))
+            [rill.wheel.repository :as repo]
+            [rill.wheel.testing :refer [with-instrument-all]]))
+
+(use-fixtures :once with-instrument-all)
 
 (defaggregate creature [id species])
 

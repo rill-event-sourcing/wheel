@@ -331,15 +331,34 @@
   (:require [rill.event-store :refer [retrieve-events append-events]]
             [rill.wheel.repository :as repo]
             [clojure.string :as string]
+            [clojure.spec :as s]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns parse-pre-post]]))
 
-(defmulti apply-event
-  "Update the properties of `aggregate` given `event`. Implementation
-  for different event types will be given by `defevent`."
+(defmulti apply-event*
   (fn [aggregate event]
     (:rill.message/type event)))
 
-(defmethod apply-event :default
+(defn apply-event
+  "Update the properties of `aggregate` given `event`. Implementation
+  for different event types will be given by `defevent`."
+  [aggregate event]
+  (apply-event* aggregate event))
+
+(defn message?
+  [m]
+  (boolean (:rill.message/type m)))
+
+(defn aggregate?
+  "Test that `obj` is an aggregate."
+  [obj]
+  (boolean (and (::id obj)
+                (::type obj))))
+
+(s/fdef apply-event
+        :ret aggregate?
+        :args (s/cat :aggregate aggregate? :event message?))
+
+(defmethod apply-event* :default
   [aggregate _]
   aggregate)
 
@@ -356,12 +375,6 @@
   [aggregate]
   (::new-events aggregate))
 
-(defn aggregate?
-  "Test that `obj` is an aggregate."
-  [obj]
-  (boolean (and (::id obj)
-                (::type obj))))
-
 (defn empty
   "Create a new aggregate with id `aggregate-id` and no
   events. Aggregate version will be -1. Note that empty aggregates
@@ -377,17 +390,29 @@
   [aggregate]
   (= (::version aggregate) -1))
 
+(s/fdef new?
+        :args (s/cat :aggregate aggregate?)
+        :ret boolean?)
+
 (defn empty?
   "Test that the aggregate is new and has no uncommitted events."
   [aggregate]
   (and (new? aggregate)
        (clojure.core/empty? (::new-events aggregate))))
 
+(s/fdef empty?
+        :args (s/cat :aggregate aggregate?)
+        :ret boolean?)
+
 (defn exists
   "If aggregate is not new, return aggregate, otherwise nil."
   [aggregate]
   (when-not (new? aggregate)
     aggregate))
+
+(s/fdef exists
+        :args (s/cat :aggregate aggregate?)
+        :ret (s/or :nil nil? :aggregate aggregate?))
 
 (defn apply-stored-event
   "Apply a previously committed event to the aggregate. This
@@ -410,6 +435,16 @@
       resolve
       meta
       ::properties))
+
+(s/fdef defevent
+        :args (s/cat :name symbol?
+                     :aggregate-type qualified-keyword?
+                     :doc-string (s/? string?)
+                     :attr-map (s/? map?)
+                     :event-args (s/and vector?
+                                        (s/cat :aggregate-arg any?
+                                               :event-properties (s/* symbol?)))
+                     :body (s/* any?)))
 
 (defmacro defevent
   "Defines function that takes aggregate + properties, constructs an
@@ -449,30 +484,34 @@
       (throw (IllegalStateException. (str "defevent " n " has properties colliding with definition of aggregate " (name t) ": " (string/join ", " collisions)))))
 
     `(do ~(when (seq body)
-            `(defmethod apply-event ~(keyword-in-current-ns n)
+            `(defmethod apply-event* ~(keyword-in-current-ns n)
                [~aggregate {:keys ~(vec properties)}]
                ~@body))
+
          (defn ~(symbol (str "->" (name n)))
            ~(into fetch-props properties)
            ~(into {:rill.message/type (keyword-in-current-ns n)
-                   :rill.wheel/type t}
+                   :rill.wheel/type   t}
                   (map (fn [k]
                          [(keyword k) k])
                        (concat fetch-props properties))))
+
          (defn ~n-event
-           (~handler-args
-            ~@(when prepost
-                [prepost])
-            (merge-aggregate-props ~aggregate
-                                   ~(into {:rill.message/type (keyword-in-current-ns n)}
-                                          (map (fn [k]
-                                                 [(keyword k) k])
-                                               properties)))))
+           ~handler-args
+           ~@(when prepost
+               [prepost])
+           (merge-aggregate-props ~aggregate
+                                  ~(into {:rill.message/type (keyword-in-current-ns n)}
+                                         (map (fn [k]
+                                                [(keyword k) k])
+                                              properties))))
          (defn ~n
-           (~handler-args
-            (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))))))
+           ~handler-args
+           (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))
 
-
+         (s/fdef ~n
+                 :args (s/cat :aggregate aggregate?
+                              :event-props (s/* any?))))))
 
 (defn type
   "Return the type of this aggregate."
@@ -564,16 +603,35 @@
     :else
     (conflict aggregate-or-rejection)))
 
+(s/fdef commit!
+        :args (s/cat :aggregate-or-rejection (s/or :aggregate aggregate?
+                                                   :rejection rejection?))
+        :ret (s/or :ok ok? :rejection rejection? ))
+
 (defmulti fetch-aggregate
   "Given a command and repository, fetch the target aggregate."
   (fn [repo command]
     (:rill.message/type command)))
 
-(defmulti apply-command
+(defmulti apply-command*
+  (fn [aggregate command]
+    (:rill.message/type command)))
+
+(defn command-result?
+  [r]
+  (or (rejection? r)
+      (aggregate? r)))
+
+(defn apply-command
   "Given a command and aggregate, apply the command to the
   aggregate. Should return an updated aggregate or a rejection."
-  (fn [repo command]
-    (:rill.message/type command)))
+  [aggregate command]
+  (apply-command* aggregate command))
+
+(s/fdef apply-command
+        :args (s/cat :aggregate aggregate? :command message?)
+        :ret command-result?)
+
 
 (defn transact!
   "Run and commit the given command against the repository."
@@ -584,6 +642,16 @@
 
 ;;;;----TODO(Joost) Insert pre-post checks at the right places, update
 ;;;;----documentation
+
+(s/fdef defcommand
+        :args (s/cat :name symbol?
+                     :aggregate-type qualified-keyword?
+                     :doc-string (s/? string?)
+                     :attr-map (s/? map?)
+                     :command-args (s/and vector?
+                                          (s/cat :repository-arg any?
+                                                 :command-properties (s/* symbol?)))
+                     :body (s/* any?)))
 
 (defmacro defcommand
   "Defines a command as a named function that takes any arguments and
@@ -609,24 +677,24 @@
   [n t & args]
   (when-not (keyword? t)
     (throw (IllegalArgumentException. "Second argument to defcommand should be the type of the aggregate.")))
-  (let [[n [aggregate & props] & body] (parse-args (cons n args))
-        n                              (vary-meta n assoc
-                                                  ::command-fn true
-                                                  ::aggregate t
-                                                  ::properties (mapv keyword props))
-        m                              (meta n)
-        fetch-props                    (type-properties t)
-        _                              (when-not (vector? fetch-props)
-                                         (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
-        fetch-props                    (mapv #(-> % name symbol) fetch-props)
-        getter                         (symbol (namespace t) (str "get-" (name t)))]
+  (let [[n [aggregate-arg & props] & body] (parse-args (cons n args))
+        n                                  (vary-meta n assoc
+                                                      ::command-fn true
+                                                      ::aggregate t
+                                                      ::properties (mapv keyword props))
+        m                                  (meta n)
+        fetch-props                        (type-properties t)
+        _                                  (when-not (vector? fetch-props)
+                                             (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
+        fetch-props                        (mapv #(-> % name symbol) fetch-props)
+        getter                             (symbol (namespace t) (str "get-" (name t)))]
     `(do ~(when-let [event-keys (::events m)]
             `(declare ~@(map (fn [k]
                                (symbol (subs (str k) 1)))
                              event-keys)))
 
-         (defmethod apply-command ~(keyword-in-current-ns n)
-           [~aggregate {:keys ~(vec props)}]
+         (defmethod apply-command* ~(keyword-in-current-ns n)
+           [~aggregate-arg {:keys ~(vec props)}]
            ~@body)
 
          (defmethod fetch-aggregate ~(keyword-in-current-ns n)
@@ -647,19 +715,21 @@
            ~(into fetch-props props)
            ~(cons (symbol (str "->" n)) (into fetch-props props)))
 
-         (defn ~n
-           ;~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate))
-           ~(into [aggregate] props)
-           (apply-command ~aggregate (~(symbol (str "->" n))
-                                      ~@(map (fn [p]
-                                               `(get ~aggregate ~(keyword p)))
-                                             fetch-props)
-                                      ~@props)))
+         ~(let [ag-arg (gensym "aggregate")]
+            `(defn ~n
+               ~(format "Apply command %s to %s. Does not commit" (name n) (name t))
+               ~(into [ag-arg] props)
+               (apply-command ~ag-arg (~(symbol (str "->" n))
+                                       ~@(map (fn [p]
+                                                `(get ~ag-arg ~(keyword p)))
+                                              fetch-props)
+                                       ~@props))))
 
          (defn ~(symbol (str (name n) "!"))
            ~(format "Apply command %s to repository and commit" (name n))
            [repository# ~@fetch-props ~@props]
            (transact! repository# (~(symbol (str "->" (name n))) ~@fetch-props ~@props))))))
+
 
 (defmacro defaggregate
   "Defines an aggregate type, and aggregate-id function. The
@@ -685,6 +755,7 @@
         [prepost body]             (parse-pre-post body)
         repo-arg                   `repository#]
     `(do (defn ~n
+           ~(format "Build empty uncommitted `%s` from positional descriptor arguments" n)
            ~(vec descriptor-args)
            ~@(when prepost
                [prepost])
@@ -692,11 +763,18 @@
                               ~@(mapcat (fn [k]
                                           [(keyword k) k])
                                         descriptor-args))))
+
+         (s/fdef ~n :ret aggregate?)
+
          (defn ~(symbol (str "get-" (name n)))
            ~(format "Fetch `%s` from repository `%s`" (name n) (name repo-arg))
            ~(into [repo-arg] descriptor-args)
            (-> (repo/update ~repo-arg (apply ~n ~descriptor-args))
                (assoc :rill.wheel/repository ~repo-arg)))
+
+         (s/fdef ~(symbol (str "get-" (name n)))
+                 :args (s/cat :repository repo/repository? :descriptor (s/* any?))
+                 :ret aggregate?)
 
          ~@(map (fn [event]
                   `(defevent ~(first event) ~(keyword-in-current-ns n) ~@(rest event)))

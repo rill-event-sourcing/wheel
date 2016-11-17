@@ -1,8 +1,10 @@
 (ns rill.wheel.trigger-test
-  (:require [rill.wheel.trigger :refer [install-trigger]]
-            [rill.wheel.testing :refer [ephemeral-repository sub?]]
+  (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [rill.wheel :refer [defcommand defevent defaggregate ok?]]
-            [clojure.test :refer [deftest testing is]]))
+            [rill.wheel.testing :refer [ephemeral-repository sub? with-instrument-all]]
+            [rill.wheel.trigger :refer [install-trigger]]))
+
+(use-fixtures :once with-instrument-all)
 
 (defaggregate turnstile
   [turnstile-id])
