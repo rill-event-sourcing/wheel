@@ -469,23 +469,25 @@
   [n t & args]
   (when-not (keyword? t)
     (throw (IllegalArgumentException. "Second argument to defevent should be the type of the aggregate.")))
-  (let [[n [aggregate & properties :as handler-args] & body] (parse-args (cons n args))
-        [prepost body]                                       (parse-pre-post body)
-        n                                                    (vary-meta n assoc
-                                                                        ::event-fn true
-                                                                        ::aggregate t
-                                                                        ::properties (mapv keyword properties))
-        n-event                                              (symbol (str (name n) "-event"))
-        fetch-props                                          (type-properties t)
-        _                                                    (when-not (vector? fetch-props)
-                                                               (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
-        fetch-props                                          (mapv #(-> % name symbol) fetch-props)]
+  (let [[n [aggregate-arg & properties] & body] (parse-args (cons n args))
+        [prepost body]                          (parse-pre-post body)
+        n                                       (vary-meta n assoc
+                                                           ::event-fn true
+                                                           ::aggregate t
+                                                           ::properties (mapv keyword properties))
+        n-event                                 (symbol (str (name n) "-event"))
+        fetch-props                             (type-properties t)
+        aggregate-sym                           (gensym "aggregate")
+        handler-args                            (into [aggregate-sym] properties)
+        _                                       (when-not (vector? fetch-props)
+                                                  (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
+        fetch-props                             (mapv #(-> % name symbol) fetch-props)]
     (when-let [collisions (seq (filter (set fetch-props) properties))]
       (throw (IllegalStateException. (str "defevent " n " has properties colliding with definition of aggregate " (name t) ": " (string/join ", " collisions)))))
 
     `(do ~(when (seq body)
             `(defmethod apply-event* ~(keyword-in-current-ns n)
-               [~aggregate {:keys ~(vec properties)}]
+               [~aggregate-arg {:keys ~(vec properties)}]
                ~@body))
 
          (defn ~(symbol (str "->" (name n)))
@@ -500,14 +502,14 @@
            ~handler-args
            ~@(when prepost
                [prepost])
-           (merge-aggregate-props ~aggregate
+           (merge-aggregate-props ~aggregate-sym
                                   ~(into {:rill.message/type (keyword-in-current-ns n)}
                                          (map (fn [k]
                                                 [(keyword k) k])
                                               properties))))
          (defn ~n
            ~handler-args
-           (apply-new-event ~aggregate (~n-event ~aggregate ~@properties)))
+           (apply-new-event ~aggregate-sym (~n-event ~aggregate-sym ~@properties)))
 
          (s/fdef ~n
                  :args (s/cat :aggregate aggregate?
