@@ -16,6 +16,9 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### NEXT
+  - small documentation improvements
+
 ### v0.1.14
   - clojure.spec specs for macros and functions
   - clojure.spec enabled for tests

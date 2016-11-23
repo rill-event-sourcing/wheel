@@ -223,11 +223,11 @@
 
        (ns user
           (:require [rill.wheel :as aggregate
-                                          :refer [defaggregate
-                                                  defcommand
-                                                  defevent
-                                                  transact!
-                                                  ok?]]))
+                                :refer [defaggregate
+                                        defcommand
+                                        defevent
+                                        transact!
+                                        ok?]]))
 
        (defaggregate user
           [user-id])
@@ -264,9 +264,9 @@
 
   #### `transact!`
 
-  You can run the given command message directly into the repository
-  using `transact!`. This will fetch the aggregate using the installed
-  `fetch-aggregate` multi-method, calls `apply-command` and `commit!`
+  You can run the given command message directly against the
+  repository using `transact!`. This will fetch the aggregate using
+  the `fetch-aggregate` function, calls `apply-command` and `commit!`
   the result.
 
       (ok? (transact! repository
@@ -281,16 +281,17 @@
 
   #### `apply-command`
 
-  The apply-command is used by `transact!` and takes the aggregate to
-  update and the command message and executes the `defcommand` body.
+  The apply-command function is used by `transact!` and takes the
+  aggregate to update and the command message and executes the
+  `defcommand` `body`:
 
        (-> (get-user repo my-id)
            (apply-command (->register my-id my-name)))
 
   #### `fetch-aggregate`
 
-  Also used by `transact!`, this method takes the repository and the
-  command message and returns the aggregate the command should be
+  Also used by `transact!`, this multi-method takes the repository and
+  the command message and returns the aggregate the command should be
   applied to.
 
   ### Commands as functions
@@ -301,8 +302,9 @@
   #### `command-name!`
 
   A generated function named after the command with an exclamation
-  mark added. Takes the repository and all arguments to identify the
-  aggregate and other command options, and commits the result.
+  mark added. Takes the `repository` and all properties to identify
+  the `aggregate` plus additional command properties, and `commit!`
+  the result.
 
        (ok? (register! repository \"user-id\" \"Some Name\"))
 
@@ -310,10 +312,10 @@
 
   #### `command-name`
 
-  Another generated function that takes the aggregate as the first
+  Another generated function that takes the `aggregate` as the first
   argument and the additional command arguments and applies the
-  command to the aggregate. This does not commit and returns the
-  updated aggregate or a rejection. You can chain successful calls
+  command to the `aggregate`. This does not commit but returns the
+  updated `aggregate` or a `rejection`. You can chain successful calls
   to named command functions and `commit!` the result.
 
        (ok? (-> repository
