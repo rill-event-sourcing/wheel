@@ -438,15 +438,20 @@
       meta
       ::properties))
 
+(s/def ::defevent-args
+  (s/cat :event-name symbol?
+         :aggregate-type qualified-keyword?
+         :doc-string (s/? string?)
+         :attr-map (s/? map?)
+         :event-args (s/and vector?
+                            (s/cat :aggregate-arg any?
+                                   :event-properties (s/* symbol?)))
+         :pre-post-map (s/? (s/and map?
+                                   #(some % [:pre :post])))
+         :body (s/* any?)))
+
 (s/fdef defevent
-        :args (s/cat :name symbol?
-                     :aggregate-type qualified-keyword?
-                     :doc-string (s/? string?)
-                     :attr-map (s/? map?)
-                     :event-args (s/and vector?
-                                        (s/cat :aggregate-arg any?
-                                               :event-properties (s/* symbol?)))
-                     :body (s/* any?)))
+        :args ::defevent-args)
 
 (defmacro defevent
   "Defines function that takes aggregate + properties, constructs an
@@ -468,54 +473,57 @@
   the default `apply-event` will be used, which will return the
   aggregate as is."
   {:arglists '([name aggregate-type doc-string? attr-map? [aggregate properties*] pre-post-map?  body*])}
-  [n t & args]
-  (when-not (keyword? t)
-    (throw (IllegalArgumentException. "Second argument to defevent should be the type of the aggregate.")))
-  (let [[n [aggregate-arg & properties] & body] (parse-args (cons n args))
-        [prepost body]                          (parse-pre-post body)
-        n                                       (vary-meta n assoc
-                                                           ::event-fn true
-                                                           ::aggregate t
-                                                           ::properties (mapv keyword properties))
-        n-event                                 (symbol (str (name n) "-event"))
-        fetch-props                             (type-properties t)
-        aggregate-sym                           (gensym "aggregate")
-        handler-args                            (into [aggregate-sym] properties)
-        _                                       (when-not (vector? fetch-props)
-                                                  (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
-        fetch-props                             (mapv #(-> % name symbol) fetch-props)]
-    (when-let [collisions (seq (filter (set fetch-props) properties))]
-      (throw (IllegalStateException. (str "defevent " n " has properties colliding with definition of aggregate " (name t) ": " (string/join ", " collisions)))))
+  [& args]
+  (let [{:keys                                    [event-name aggregate-type doc-string attr-map pre-post-map body]
+         {:keys [aggregate-arg event-properties]} :event-args}
+        (s/conform ::defevent-args args)]
+    (let [event-name    (cond-> event-name
+                          (seq doc-string)
+                          (vary-meta assoc :doc doc-string)
+                          :always
+                          (vary-meta assoc
+                                     ::event-fn true
+                                     ::aggregate aggregate-type
+                                     ::properties (mapv keyword event-properties)))
+          n-event       (symbol (str (name event-name) "-event"))
+          fetch-props   (type-properties aggregate-type)
+          aggregate-sym (gensym "aggregate")
+          handler-args  (into [aggregate-sym] event-properties)
+          _             (when-not (vector? fetch-props)
+                          (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str aggregate-type)))))
+          fetch-props   (mapv #(-> % name symbol) fetch-props)]
+      (when-let [collisions (seq (filter (set fetch-props) event-properties))]
+        (throw (IllegalStateException. (str "defevent " event-name " has properties colliding with definition of aggregate " (name aggregate-type) ": " (string/join ", " collisions)))))
 
-    `(do ~(when (seq body)
-            `(defmethod apply-event* ~(keyword-in-current-ns n)
-               [~aggregate-arg {:keys ~(vec properties)}]
-               ~@body))
+      `(do ~(when (seq body)
+              `(defmethod apply-event* ~(keyword-in-current-ns event-name)
+                 [~aggregate-arg {:keys ~(vec event-properties)}]
+                 ~@body))
 
-         (defn ~(symbol (str "->" (name n)))
-           ~(into fetch-props properties)
-           ~(into {:rill.message/type (keyword-in-current-ns n)
-                   :rill.wheel/type   t}
-                  (map (fn [k]
-                         [(keyword k) k])
-                       (concat fetch-props properties))))
+           (defn ~(symbol (str "->" (name event-name)))
+             ~(into fetch-props event-properties)
+             ~(into {:rill.message/type (keyword-in-current-ns event-name)
+                     :rill.wheel/type   aggregate-type}
+                    (map (fn [k]
+                           [(keyword k) k])
+                         (concat fetch-props event-properties))))
 
-         (defn ~n-event
-           ~handler-args
-           ~@(when prepost
-               [prepost])
-           (merge-aggregate-props ~aggregate-sym
-                                  ~(into {:rill.message/type (keyword-in-current-ns n)}
-                                         (map (fn [k]
-                                                [(keyword k) k])
-                                              properties))))
-         (defn ~n
-           ~handler-args
-           (apply-new-event ~aggregate-sym (~n-event ~aggregate-sym ~@properties)))
+           (defn ~n-event
+             ~handler-args
+             ~@(when pre-post-map
+                 [pre-post-map])
+             (merge-aggregate-props ~aggregate-sym
+                                    ~(into {:rill.message/type (keyword-in-current-ns event-name)}
+                                           (map (fn [k]
+                                                  [(keyword k) k])
+                                                event-properties))))
+           (defn ~event-name
+             ~handler-args
+             (apply-new-event ~aggregate-sym (~n-event ~aggregate-sym ~@event-properties)))
 
-         (s/fdef ~n
-                 :args (s/cat :aggregate aggregate?
-                              :event-props (s/* any?))))))
+           (s/fdef ~event-name
+                   :args (s/cat :aggregate aggregate?
+                                :event-props (s/* any?)))))))
 
 (defn type
   "Return the type of this aggregate."
