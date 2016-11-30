@@ -1,5 +1,6 @@
 (ns rill.wheel-test
-  (:require [clojure.test :refer [deftest is testing use-fixtures]]
+  (:require [clojure.string :as string]
+            [clojure.test :refer [deftest is testing use-fixtures]]
             [rill.message :as message]
             [rill.wheel
              :as
@@ -192,6 +193,8 @@
   "Create user if none exists with the given email address."
   {::aggregate/events [::created]}
   [user full-name]
+  {:pre [(string? full-name)
+         (not (string/blank? full-name))]}
   (if-not (aggregate/new? user)
     (rejection user "User already exists")
     (-> user
@@ -200,6 +203,8 @@
 (defevent created ::user
   "A new user was created"
   [user full-name]
+  {:pre [(string? full-name)
+         (not (string/blank? full-name))]}
   (assoc user :full-name full-name))
 
 (defcommand rename ::user
@@ -301,5 +306,49 @@
   (is (thrown? IllegalStateException
                (eval '(rill.wheel/defevent colliding-event ::user
                         [user email])))))
+
+(deftest test-prepost-maps
+  (testing "defevent"
+    (testing "->{name} constructor"
+      (is (sub? {:full-name "joost"
+                 :email     "test@example.com"}
+                (->created "test@example.com" "joost"))
+          "event construction works with valid precondition")
+
+      (is (thrown? AssertionError (->created "test@example.com" " "))
+          "failing the precondition throws error"))
+
+    (testing "{name}-event constructor"
+      (is (sub? {:full-name "joost"
+                 :email     "test@example.com"}
+                (-> (user "test@example.com")
+                    (created-event "joost")))
+          "event construction works with valid precondition")
+
+      (is (thrown? AssertionError (-> (user "test@example.com")
+                                      (created-event "  ")))
+          "failing the precondition throws error")))
+
+
+  (testing "defcommand"
+    (testing "->{name} constructor"
+      (is (sub? {:full-name "joost"
+                 :email     "test@example.com"}
+                (->create-or-fail "test@example.com" "joost"))
+          "event construction works with valid precondition")
+
+      (is (thrown? AssertionError (->create-or-fail "test@example.com" " "))
+          "failing the precondition throws error"))
+    
+    (testing "{name}-command constructor"
+      (is (sub? {:full-name "joost"
+                 :email     "test@example.com"}
+                (create-or-fail-command "test@example.com" "joost"))
+          "event construction works with valid precondition")
+
+      (is (thrown? AssertionError (create-or-fail-command "test@example.com" " "))
+          "failing the precondition throws error"))
+
+    ))
 
 (use-fixtures :once with-instrument-all)

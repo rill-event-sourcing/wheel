@@ -502,6 +502,8 @@
 
            (defn ~(symbol (str "->" (name event-name)))
              ~(into fetch-props event-properties)
+             ~@(when pre-post-map
+                 [pre-post-map])
              ~(into {:rill.message/type (keyword-in-current-ns event-name)
                      :rill.wheel/type   aggregate-type}
                     (map (fn [k]
@@ -655,15 +657,20 @@
 ;;;;----TODO(Joost) Insert pre-post checks at the right places, update
 ;;;;----documentation
 
+(s/def ::defcommand-args
+  (s/cat :command-name symbol?
+         :aggregate-type qualified-keyword?
+         :doc-string (s/? string?)
+         :attr-map (s/? map?)
+         :command-args (s/and vector?
+                              (s/cat :aggregate-arg any?
+                                     :command-properties (s/* symbol?)))
+         :pre-post-map (s/? (s/and map?
+                                   #(some % [:pre :post])))
+         :body (s/* any?)))
+
 (s/fdef defcommand
-        :args (s/cat :name symbol?
-                     :aggregate-type qualified-keyword?
-                     :doc-string (s/? string?)
-                     :attr-map (s/? map?)
-                     :command-args (s/and vector?
-                                          (s/cat :repository-arg any?
-                                                 :command-properties (s/* symbol?)))
-                     :body (s/* any?)))
+        :args ::defcommand-args)
 
 (defmacro defcommand
   "Defines a command as a named function that takes any arguments and
@@ -686,27 +693,30 @@
 
   "
   {:arglists '([name aggregate-type doc-string? attr-map? [repository properties*] pre-post-map? body])}
-  [n t & args]
-  (when-not (keyword? t)
-    (throw (IllegalArgumentException. "Second argument to defcommand should be the type of the aggregate.")))
-  (let [[n [aggregate-arg & props] & body] (parse-args (cons n args))
-        n                                  (vary-meta n assoc
-                                                      ::command-fn true
-                                                      ::aggregate t
-                                                      ::properties (mapv keyword props))
-        m                                  (meta n)
-        fetch-props                        (type-properties t)
-        _                                  (when-not (vector? fetch-props)
-                                             (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str t)))))
-        fetch-props                        (mapv #(-> % name symbol) fetch-props)
-        getter                             (symbol (namespace t) (str "get-" (name t)))]
+  [& args]
+  (let [{:keys                                      [command-name aggregate-type doc-string attr-map pre-post-map body]
+         {:keys [aggregate-arg command-properties]} :command-args}
+        (s/conform ::defcommand-args args)
+
+        n           (-> command-name
+                        (vary-meta assoc
+                                   ::command-fn true
+                                   ::aggregate aggregate-type
+                                   ::properties (mapv keyword command-properties))
+                        (vary-meta merge attr-map))
+        m           (meta n)
+        fetch-props (type-properties aggregate-type)
+        _           (when-not (vector? fetch-props)
+                      (throw (IllegalStateException. (format "Can't fetch type properties for aggregate %s" (str aggregate-type)))))
+        fetch-props (mapv #(-> % name symbol) fetch-props)
+        getter      (symbol (namespace aggregate-type) (str "get-" (name aggregate-type)))]
     `(do ~(when-let [event-keys (::events m)]
             `(declare ~@(map (fn [k]
                                (symbol (subs (str k) 1)))
                              event-keys)))
 
          (defmethod apply-command* ~(keyword-in-current-ns n)
-           [~aggregate-arg {:keys ~(vec props)}]
+           [~aggregate-arg {:keys ~(vec command-properties)}]
            ~@body)
 
          (defmethod fetch-aggregate ~(keyword-in-current-ns n)
@@ -715,32 +725,34 @@
 
          (defn ~(symbol (str "->" n))
            ~(format "Construct a %s command message" (name n))
-           ~(into fetch-props props)
+           ~(into fetch-props command-properties)
+           ~@(when pre-post-map
+               [pre-post-map])
            ~(into {:rill.message/type (keyword-in-current-ns n)}
                   (map (fn [k]
                          [(keyword k) k])
-                       (into fetch-props props))))
+                       (into fetch-props command-properties))))
 
          (defn ~(symbol (str n "-command"))
            ~(format "Construct a %s command message. Deprecated, use `->%s` instead" (name n) (name n))
            {:deprecated true}
-           ~(into fetch-props props)
-           ~(cons (symbol (str "->" n)) (into fetch-props props)))
+           ~(into fetch-props command-properties)
+           ~(cons (symbol (str "->" n)) (into fetch-props command-properties)))
 
          ~(let [ag-arg (gensym "aggregate")]
             `(defn ~n
-               ~(format "Apply command %s to %s. Does not commit" (name n) (name t))
-               ~(into [ag-arg] props)
+               ~(format "Apply command %s to %s. Does not commit" (name n) (name aggregate-type))
+               ~(into [ag-arg] command-properties)
                (apply-command ~ag-arg (~(symbol (str "->" n))
                                        ~@(map (fn [p]
                                                 `(get ~ag-arg ~(keyword p)))
                                               fetch-props)
-                                       ~@props))))
+                                       ~@command-properties))))
 
          (defn ~(symbol (str (name n) "!"))
            ~(format "Apply command %s to repository and commit" (name n))
-           [repository# ~@fetch-props ~@props]
-           (transact! repository# (~(symbol (str "->" (name n))) ~@fetch-props ~@props))))))
+           [repository# ~@fetch-props ~@command-properties]
+           (transact! repository# (~(symbol (str "->" (name n))) ~@fetch-props ~@command-properties))))))
 
 
 (defmacro defaggregate

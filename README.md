@@ -16,8 +16,11 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### NEXT
+### v0.1.15-SNAPSHOT
   - small documentation improvements
+  - use clojure.spec for parsing `defevent` and `defcommand` macro
+    arguments
+  - use provided prepost maps in `->event-name` constructors
 
 ### v0.1.14
   - clojure.spec specs for macros and functions
