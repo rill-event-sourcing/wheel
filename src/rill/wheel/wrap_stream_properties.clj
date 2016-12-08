@@ -5,37 +5,31 @@
 
 (defn valid-props?
   [p]
-  (if (coll? p)
-    (or (sequential? p)
-        (sorted? p))
-    true))
+  (and (map? p)
+       (sorted? p)))
 
 (defrecord StreamPropertiesWrapper [delegated-event-store]
   EventStore
   (retrieve-events-since [this props cursor wait-for-seconds]
-    (assert (valid-props? props)
-            "Can't use unsorted maps or unsorted sets as props")
-    (let [events (retrieve-events-since delegated-event-store props cursor wait-for-seconds)]
-      (cond
-        (= props all-events-stream-id)
+    (assert (or (= all-events-stream-id props)
+                (valid-props? props))
+            "Can only use sorted maps as props")
+    (let [stream-id (if (= all-events-stream-id props)
+                      all-events-stream-id
+                      (pr-str props))
+          events (retrieve-events-since delegated-event-store stream-id cursor wait-for-seconds)]
+      (if (= props all-events-stream-id)
         ;; must fetch props for each event separately
         (map (fn [e]
-               (if (map? (:rill.message/stream-id e))
-                 (merge e (:rill.message/stream-id e))
-                 e))
+               (merge e (read-string (:rill.message/stream-id e))))
              events)
-        (map? props)
         ;; set these props on every event
         (map (fn [e] (merge e props))
-             events)
-        :else
-        events)))
+             events))))
   (append-events [this props from-version events]
     (assert (valid-props? props)
-            "Can't use unsorted maps or unsorted sets as props")
-    (if (map? props)
-      (append-events delegated-event-store props from-version (map #(apply dissoc % (keys props)) events))
-      (append-events delegated-event-store props from-version events))))
+            "Can only use sorted maps as props")
+    (append-events delegated-event-store (pr-str props) from-version (map #(apply dissoc % (keys props)) events))))
 
 (defn wrap-stream-properties
   [event-store]
