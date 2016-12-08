@@ -16,6 +16,9 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.16
+  - serialize props for storing aggregate ids in durable stores
+
 ### v0.1.15
   - small documentation improvements
   - use clojure.spec for parsing `defevent` and `defcommand` macro
