@@ -215,7 +215,7 @@ digraph cqrs {
       (some-event a prop2)))
 
   (transact! repository (->some-command prop1 prop2))
-  (commit! repository (some-command prop1 prop1))
+  (commit! (some-command aggregate prop1 prop1))
   (some-command! repository prop1 prop2)
    #+END_SRC
 * What is out of scope?
