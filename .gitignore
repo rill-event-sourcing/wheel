@@ -11,3 +11,4 @@ pom.xml.asc
 .hg/
 *.svg
 gh-pages
+.DS_Store

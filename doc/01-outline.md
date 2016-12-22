@@ -13,6 +13,9 @@ describe the concepts in very general terms first, so that readers
 will get a reasonable understanding of the mechanisms and trade-offs
 involved.
 
+See also
+[the design-and-implementation presentation](design-and-implementation/presentation.pdf).
+
 ## Command/Query responsibility separation
 
 Rill/Wheel is built assuming a
