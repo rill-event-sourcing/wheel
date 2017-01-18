@@ -331,6 +331,7 @@
   "
   (:refer-clojure :exclude [empty empty? type])
   (:require [rill.event-store :refer [retrieve-events append-events]]
+            [rill.message :as message]
             [rill.wheel.repository :as repo]
             [clojure.string :as string]
             [clojure.spec :as s]
@@ -376,6 +377,12 @@
   "The events that will be committed when this aggregate is committed."
   [aggregate]
   (::new-events aggregate))
+
+(defn aggregate?
+  "Test that `obj` is an aggregate."
+  [obj]
+  (boolean (and (::id obj)
+                (::type obj))))
 
 (defn empty
   "Create a new aggregate with id `aggregate-id` and no
@@ -586,7 +593,12 @@
   [aggregate]
   (let [events (::new-events aggregate)]
     {::status    :ok
-     ::events    events
+     ::events    (->> events
+                      (map-indexed (fn [index event]
+                                     (-> event
+                                         (assoc ::message/stream-id (::id aggregate))
+                                         (assoc ::message/number (+ (::version aggregate) (inc index))))))
+                      vec)
      ::aggregate (-> aggregate
                      (update ::version + (count events))
                      (assoc ::new-events []))}))

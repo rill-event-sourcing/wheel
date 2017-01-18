@@ -151,31 +151,38 @@
                         commit!)))
 
     (is (sub? {::aggregate/status :ok
-               ::aggregate/events [{::message/type ::installed}]}
+               ::aggregate/events [{::message/type      ::installed
+                                    ::message/stream-id {:turnstile-id    id
+                                                         ::aggregate/type ::turnstile}
+                                    ::message/number    0}]}
               (-> (get-turnstile repo id)
                   (install-turnstile)
                   commit!)))
 
     (is (sub? {::aggregate/status :ok
-               ::aggregate/events [{::message/type ::arm-pushed-ineffectively}]}
+               ::aggregate/events [{::message/type   ::arm-pushed-ineffectively
+                                    ::message/number 1}]}
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))
 
     (is (sub? {::aggregate/status :ok
-               ::aggregate/events [{::message/type ::coin-inserted}]}
+               ::aggregate/events [{::message/type   ::coin-inserted
+                                    ::message/number 2}]}
               (-> (get-turnstile repo id)
                   (insert-coin)
                   commit!)))
 
     (is (sub? {::aggregate/status :ok
-               ::aggregate/events [{::message/type ::arm-turned}]}
+               ::aggregate/events [{::message/type   ::arm-turned
+                                    ::message/number 3}]}
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))
 
     (is (sub? {::aggregate/status :ok
-               ::aggregate/events [{::message/type ::arm-pushed-ineffectively}]}
+               ::aggregate/events [{::message/type   ::arm-pushed-ineffectively
+                                    ::message/number 4}]}
               (-> (get-turnstile repo id)
                   (push-arm)
                   commit!)))))

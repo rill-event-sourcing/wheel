@@ -24,4 +24,3 @@
   "Test if `repo` is a repository"
   [repo]
   (satisfies? Repository repo))
-
