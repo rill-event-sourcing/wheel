@@ -1,5 +1,10 @@
 language: clojure
 script: lein test
+services:
+- mysql
+env:
+- RILL_MYSQL_DB=rill_test RILL_MYSQL_USER=root
+
 notifications:
   slack:
     secure: IZkPbIvZI8nHOplxz2AvbaZX/dVix+/DMNr5hvDGWyaReLHsePBbEv2bzmJzR8DpTp+ANAJ0flqTx4hguW9dtovRlt9H89mK1E3Tl9Ur/mvGwUeHGSKsJQN/TXxtoBjupFe3NlBVbhCLIQMIFgFe9RSvR6mOR94pcfZ4HL+A1SSq2rqg8cbG1HuJiHtrd7/dO8XqrfLqewNx8jirgqAYYWRgOSqrdrIWpSPOuFCELQjUO0EPERVBsDLTvDDmNkFcR+X5eUsnFnmhhXkQRri+5gK6wVDofgEMnfCgUYp+H/U5izbGKzHIBAFWXI2SgbAZUpTCw4DLWFCQdwjOiED2CJZeBZ6UiUw264I8g0aKtlglsTw8g5EgLN4Oi+vF3NJqyYl4kGi+f5ttl3Ie8l1LPJe944aTrQnSR8XtBdX5oV+NCijEfYB4qq6exPgHYBCF8bSvh46KTBF/P/fiAIVmSTgkbH56nWweMc8aP2FcdtpgqACUtpz7ItT8EsxYpQ6OjnB/6MSWVn3+y2/6KelOdgpl1KiJ/C0LVg5Q+oQxm+NclXrn9KiQJCRDG7Ir05LsBuJQiZg68jHNjrCh2iGnXf/uqvAdD8/ZwQony2yO+vM8nchKcHTvvETxj8NPyM/5hDdsjLVf967Dacy7fLJGMy+ZWdHjQgusW1Yb2O+/rgU=
