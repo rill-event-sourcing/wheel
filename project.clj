@@ -8,4 +8,8 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
                  [org.clojure/core.cache "0.6.5"]
                  [rill-event-sourcing/rill.event_store "0.2.2"]
-                 [rill-event-sourcing/rill.temp_store "0.2.2"]])
+                 [rill-event-sourcing/rill.temp_store "0.2.2"]]
+  :profiles {:dev
+             {:dependencies [[rill-event-sourcing/rill.event_store.mysql "0.2.3-RC2"]
+                             [mysql/mysql-connector-java "5.1.6"]]}})
+

@@ -16,6 +16,12 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### V0.1.19
+  - deserialize `:rill.message/stream-id` in messages when using
+    `rill.wheel/wrap-stream-properties`.
+  - remove debug output from `rill.wheel.wrap-upcasts`
+  - added tests for integration with `rill.event-store.mysql`
+
 ### V0.1.18
   - include `:rill.message/stream-id` and `:rill.message/number` in
     `ok` result.

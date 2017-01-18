@@ -21,10 +21,15 @@
       (if (= props all-events-stream-id)
         ;; must fetch props for each event separately
         (map (fn [e]
-               (merge e (read-string (:rill.message/stream-id e))))
+               (let [id (read-string (:rill.message/stream-id e))]
+                 (-> e
+                     (merge id)
+                     (assoc :rill.message/stream-id id))))
              events)
         ;; set these props on every event
-        (map (fn [e] (merge e props))
+        (map (fn [e] (-> e
+                         (merge props)
+                         (assoc :rill.message/stream-id props)))
              events))))
   (append-events [this props from-version events]
     (assert (valid-props? props)

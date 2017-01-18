@@ -18,5 +18,4 @@
   Upcasts are functions that take an event and return an upgraded
   event. Upcasts are applied from left to right."
   [wrapped & upcasts]
-  (prn [wrapped upcasts])
   (map->Wrapper {:wrapped wrapped :upcast (apply comp (reverse upcasts))}))
