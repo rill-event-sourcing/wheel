@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### V0.1.18
+  - include `:rill.message/stream-id` and `:rill.message/number` in
+    `ok` result.
+
 ### v0.1.17
   - added upcasts wrapper. added presentation to docs
 
