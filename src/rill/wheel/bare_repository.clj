@@ -25,3 +25,7 @@
   event-store."
   [event-store]
   (with-triggers (->BareRepository event-store)))
+
+(defmethod print-method BareRepository
+  [r ^java.io.Writer w]
+  (.write w "#<rill.wheel.bare-repository.BareRepository>"))

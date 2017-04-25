@@ -63,3 +63,7 @@
    (with-triggers (->CachingRepository event-store (atom cache))))
   ([event-store]
    (caching-repository event-store (cache/lru-cache-factory {} :threshold 20000))))
+
+(defmethod print-method CachingRepository
+  [r ^java.io.Writer w]
+  (.write w "#<rill.wheel.caching-repository.CachingRepository>"))
