@@ -27,3 +27,6 @@ gh-pages: docs
 
 test:
 	lein test
+
+start-mysql:
+	docker run -d -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:8
