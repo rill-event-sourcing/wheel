@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.20
+  - ensure repositories print as short names instead of potentially
+    giant map
+
 ### V0.1.19
   - deserialize `:rill.message/stream-id` in messages when using
     `rill.wheel/wrap-stream-properties`.
