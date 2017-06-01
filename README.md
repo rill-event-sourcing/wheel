@@ -16,6 +16,10 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.21
+  - upgrade to clojure-1.9.0-alpha16 with clojure.spec.alpha
+    namespaces
+
 ### v0.1.20
   - ensure repositories print as short names instead of potentially
     giant map
