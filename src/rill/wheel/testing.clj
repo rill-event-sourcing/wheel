@@ -2,7 +2,7 @@
   "Tools for unit-testing ring.wheel code."
   (:require [rill.event-store.memory :refer [memory-store]]
             [rill.wheel.bare-repository :refer [bare-repository]]
-            [clojure.spec.test :as stest]))
+            [clojure.spec.test.alpha :as stest]))
 
 (defn sub?
   "true if `sub` is either `nil`, equal to `x`, or a recursive
@@ -73,4 +73,3 @@
   (let [instrumented (stest/instrument)]
     (t)
     (stest/unstrument instrumented)))
-

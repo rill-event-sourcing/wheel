@@ -334,7 +334,7 @@
             [rill.message :as message]
             [rill.wheel.repository :as repo]
             [clojure.string :as string]
-            [clojure.spec :as s]
+            [clojure.spec.alpha :as s]
             [rill.wheel.macro-utils :refer [parse-args keyword-in-current-ns parse-pre-post]]))
 
 (defmulti apply-event*
