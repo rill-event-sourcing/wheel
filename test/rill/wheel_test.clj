@@ -2,18 +2,9 @@
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is testing use-fixtures]]
             [rill.message :as message]
-            [rill.wheel
-             :as
-             aggregate
-             :refer
-             [commit!
-              defaggregate
-              defcommand
-              defevent
-              ok?
-              rejection
-              rejection?
-              transact!]]
+            [rill.wheel :as aggregate :refer [commit! defaggregate defcommand
+                                              defevent ok? rejection rejection?
+                                              transact!]]
             [rill.wheel.testing :refer [ephemeral-repository sub? with-instrument-all]]))
 
 (defaggregate aggregate1
@@ -254,7 +245,6 @@
       "Can create event with aggregate")
 
   (is (= {:rill.message/type ::created
-          ::aggregate/type   ::user
           :email             "user@example.com"
           :full-name         "joost"}
          (->created "user@example.com" "joost"))
@@ -346,7 +336,20 @@
 
       (is (thrown? AssertionError (->create-or-fail "test@example.com" " "))
           "failing the precondition throws error"))
-    
+
+    (testing "map->{name} constructor"
+      (is (= {:full-name         "joost"
+              :rill.message/type ::create-or-fail
+              :email             "test@example.com"}
+             (map->create-or-fail {:email     "test@example.com"
+                                   :full-name "joost"}))
+          "event construction works with valid precondition")
+
+      (is (thrown? AssertionError
+                   (map->create-or-fail {:email     "test@example.com"
+                                         :full-name " "}))
+          "failing the precondition throws error"))
+
     (testing "{name}-command constructor"
       (is (sub? {:full-name "joost"
                  :email     "test@example.com"}

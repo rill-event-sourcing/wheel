@@ -511,11 +511,17 @@
              ~(into fetch-props event-properties)
              ~@(when pre-post-map
                  [pre-post-map])
-             ~(into {:rill.message/type (keyword-in-current-ns event-name)
-                     :rill.wheel/type   aggregate-type}
+             ~(into {:rill.message/type (keyword-in-current-ns event-name)}
                     (map (fn [k]
                            [(keyword k) k])
                          (concat fetch-props event-properties))))
+
+           (defn ~(symbol (str "map->" (name event-name)))
+             {:arglists '([m])}
+             [{:keys ~(into fetch-props event-properties) :as m#}]
+             ~@(when pre-post-map
+                 [pre-post-map])
+             (assoc m# :rill.message/type ~(keyword-in-current-ns event-name)))
 
            (defn ~n-event
              ~handler-args
@@ -734,6 +740,13 @@
          (defmethod fetch-aggregate ~(keyword-in-current-ns n)
            [repository# {:keys ~fetch-props}]
            (~getter repository# ~@fetch-props))
+
+         (defn ~(symbol (str "map->" (name n)))
+           {:arglists '([m])}
+           [{:keys ~(into fetch-props command-properties) :as m#}]
+           ~@(when pre-post-map
+               [pre-post-map])
+           (assoc m# :rill.message/type ~(keyword-in-current-ns n)))
 
          (defn ~(symbol (str "->" n))
            ~(format "Construct a %s command message" (name n))
