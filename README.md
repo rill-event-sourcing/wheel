@@ -16,6 +16,9 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
+### v0.1.23
+  - remove work-in-progress broken files from release
+
 ### v0.1.22
   - events don't include their aggregate type any more
   - introduce `map->{name}` constructors
