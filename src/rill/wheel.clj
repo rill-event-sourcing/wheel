@@ -517,7 +517,6 @@
                          (concat fetch-props event-properties))))
 
            (defn ~(symbol (str "map->" (name event-name)))
-             {:arglists '([m])}
              [{:keys ~(into fetch-props event-properties) :as m#}]
              ~@(when pre-post-map
                  [pre-post-map])
@@ -742,7 +741,6 @@
            (~getter repository# ~@fetch-props))
 
          (defn ~(symbol (str "map->" (name n)))
-           {:arglists '([m])}
            [{:keys ~(into fetch-props command-properties) :as m#}]
            ~@(when pre-post-map
                [pre-post-map])
