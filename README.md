@@ -16,7 +16,7 @@ See [the manual](https://rill-event-sourcing.github.io/wheel/index.html)
 
 ## Changelog
 
-### v0.1.14
+### v0.1.24
   - provide more useful arglists metadata on `map->{name}`
     constructors.
 
